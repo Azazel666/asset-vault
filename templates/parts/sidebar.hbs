@@ -1,3 +1,8 @@
-<div class="av-sidebar-placeholder">
-  <p>{{localize "asset-vault.sidebar.placeholder"}}</p>
+<div class="av-sources">
+  {{#each sources}}
+  <button type="button" class="av-source-btn{{#if active}} active{{/if}}"
+    data-action="setSource" data-source="{{key}}">
+    {{label}}
+  </button>
+  {{/each}}
 </div>

@@ -26,7 +26,7 @@
 
   "asset-vault.search.placeholder": "Search assets…",
 
-  "asset-vault.sidebar.placeholder": "Folders & filters",
-  "asset-vault.content.placeholder": "Assets will appear here",
+  "asset-vault.nav.back": "Go up one level",
+  "asset-vault.content.empty": "No files found in this folder",
   "asset-vault.detail.placeholder": "Select an asset to see details"
 }

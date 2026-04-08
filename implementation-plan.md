@@ -352,15 +352,15 @@
 
 ### Verification
 
-- [ ] Opening the picker shows the root directory contents (folders + files)
-- [ ] Clicking a folder navigates into it and shows its contents
-- [ ] Breadcrumb updates to show the current path
-- [ ] Clicking a breadcrumb segment navigates to that level
-- [ ] Back button / back navigation goes up one level
-- [ ] Files are filtered by the calling context type (e.g., only images when opened for an image field)
-- [ ] Source tabs work — can switch between User Data and other sources
-- [ ] Empty directories show an appropriate message
-- [ ] No errors when navigating deeply nested paths
+- [X] Opening the picker shows the root directory contents (folders + files)
+- [X] Clicking a folder navigates into it and shows its contents
+- [X] Breadcrumb updates to show the current path
+- [X] Clicking a breadcrumb segment navigates to that level
+- [X] Back button / back navigation goes up one level
+- [X] Files are filtered by the calling context type (e.g., only images when opened for an image field)
+- [X] Source tabs work — can switch between User Data and other sources
+- [X] Empty directories show an appropriate message
+- [X] No errors when navigating deeply nested paths
 
 ---
 

@@ -1,3 +1,32 @@
-<div class="av-content-placeholder">
-  <p>{{localize "asset-vault.content.placeholder"}}</p>
+{{#if browseError}}
+<div class="av-state-msg av-error">
+  <i class="fa-solid fa-triangle-exclamation"></i> {{browseError}}
 </div>
+{{else if noResults}}
+<div class="av-state-msg av-empty">
+  <i class="fa-solid fa-folder-open"></i> {{localize "asset-vault.content.empty"}}
+</div>
+{{else}}
+<div class="av-items" data-view="{{viewMode}}">
+  {{#each dirs}}
+  <div class="av-item av-item-dir" data-action="pickDirectory" data-path="{{path}}" title="{{name}}">
+    <i class="fa-solid fa-folder av-item-icon"></i>
+    <span class="av-item-name">{{name}}</span>
+  </div>
+  {{/each}}
+  {{#each files}}
+  <div class="av-item av-item-file" data-path="{{path}}" title="{{name}}">
+    {{#if isImage}}
+    <img class="av-thumb" src="{{path}}" loading="lazy" alt="{{name}}" />
+    {{else if isVideo}}
+    <i class="fa-solid fa-file-video av-item-icon"></i>
+    {{else if isAudio}}
+    <i class="fa-solid fa-file-audio av-item-icon"></i>
+    {{else}}
+    <i class="fa-solid fa-file av-item-icon"></i>
+    {{/if}}
+    <span class="av-item-name">{{name}}</span>
+  </div>
+  {{/each}}
+</div>
+{{/if}}
