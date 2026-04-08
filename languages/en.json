@@ -1,0 +1,5 @@
+{
+  "asset-vault.title": "Asset Vault",
+  "asset-vault.settings.useDefaultPicker.name": "Use Default File Picker",
+  "asset-vault.settings.useDefaultPicker.hint": "Disable Asset Vault and use Foundry's built-in file picker instead."
+}
