@@ -6,18 +6,17 @@
     <aside class="av-sidebar">
       {{> "modules/asset-vault/templates/parts/sidebar.hbs"}}
     </aside>
-    <div class="av-main">
-      <div class="av-content">
-        {{> "modules/asset-vault/templates/parts/content.hbs"}}
-      </div>
-      <div class="av-detail" hidden>
-        {{> "modules/asset-vault/templates/parts/detail-panel.hbs"}}
-      </div>
+    <div class="av-content">
+      {{> "modules/asset-vault/templates/parts/content.hbs"}}
     </div>
+    <aside class="av-detail-panel"{{#unless selectedFile}} hidden{{/unless}}>
+      {{> "modules/asset-vault/templates/parts/detail-panel.hbs"}}
+    </aside>
   </div>
   {{#if isPicker}}
   <footer class="av-footer">
-    <button type="button" data-action="confirmSelection" class="av-select-btn">
+    <button type="button" data-action="confirmSelection" class="av-select-btn"
+      {{#unless selectedFile}}disabled{{/unless}}>
       <i class="fa-solid fa-check"></i> {{localize "asset-vault.actions.select"}}
     </button>
   </footer>

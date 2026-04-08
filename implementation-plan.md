@@ -400,14 +400,14 @@
 
 ### Verification
 
-- [ ] Grid view shows image thumbnails at correct size
-- [ ] Grid view shows type icons for non-image files
-- [ ] List view shows tabular data with small thumbnails
-- [ ] View toggle switches between grid and list
-- [ ] View preference persists after closing and reopening the picker
-- [ ] `loading="lazy"` is present on image elements (check in Elements inspector)
-- [ ] Folders appear before files in both views
-- [ ] Long filenames are truncated with tooltips
+- [X] Grid view shows image thumbnails at correct size
+- [X] Grid view shows type icons for non-image files
+- [X] List view shows tabular data with small thumbnails
+- [X] View toggle switches between grid and list
+- [X] View preference persists after closing and reopening the picker
+- [X] `loading="lazy"` is present on image elements (check in Elements inspector)
+- [X] Folders appear before files in both views
+- [X] Long filenames are truncated with tooltips
 
 ---
 
@@ -461,18 +461,18 @@
 
 ### Verification
 
-- [ ] Clicking a file highlights it and shows the detail panel
-- [ ] Detail panel shows correct preview for images (rendered, not just icon)
-- [ ] Detail panel shows type icon for non-image files
-- [ ] Filename and full path are displayed correctly
-- [ ] "Copy URL" copies the file path (paste to verify) — works in both modes
-- [ ] **Picker mode:** Double-clicking a file closes the picker and applies the selection
-- [ ] **Picker mode:** "Select" button closes the picker and applies the selection
-- [ ] **Picker mode:** The field that triggered the picker is updated with the correct file path
-- [ ] **Picker mode:** The callback function is called with the correct path
-- [ ] **Hub mode:** Double-click does NOT close the hub or trigger a callback
-- [ ] **Hub mode:** No "Select" button visible
-- [ ] Test picker with: scene background image, actor portrait, tile image, audio playlist track
+- [X] Clicking a file highlights it and shows the detail panel
+- [X] Detail panel shows correct preview for images (rendered, not just icon)
+- [X] Detail panel shows type icon for non-image files
+- [X] Filename and full path are displayed correctly
+- [X] "Copy URL" copies the file path (paste to verify) — works in both modes
+- [X] **Picker mode:** Double-clicking a file closes the picker and applies the selection
+- [X] **Picker mode:** "Select" button closes the picker and applies the selection
+- [X] **Picker mode:** The field that triggered the picker is updated with the correct file path
+- [X] **Picker mode:** The callback function is called with the correct path
+- [X] **Hub mode:** Double-click does NOT close the hub or trigger a callback
+- [X] **Hub mode:** No "Select" button visible
+- [X] Test picker with: scene background image, actor portrait, tile image, audio playlist track
 
 ---
 

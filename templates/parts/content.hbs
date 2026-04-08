@@ -12,20 +12,33 @@
   <div class="av-item av-item-dir" data-action="pickDirectory" data-path="{{path}}" title="{{name}}">
     <i class="fa-solid fa-folder av-item-icon"></i>
     <span class="av-item-name">{{name}}</span>
+    <span class="av-item-type">Folder</span>
   </div>
   {{/each}}
   {{#each files}}
-  <div class="av-item av-item-file" data-path="{{path}}" title="{{name}}">
+  <div class="av-item av-item-file{{#if isSelected}} selected{{/if}}"
+    data-action="selectFile"
+    data-path="{{path}}"
+    data-name="{{name}}"
+    data-is-image="{{isImage}}"
+    data-is-video="{{isVideo}}"
+    data-is-audio="{{isAudio}}"
+    data-is-pdf="{{isPdf}}"
+    data-file-type="{{fileType}}"
+    title="{{name}}">
     {{#if isImage}}
     <img class="av-thumb" src="{{path}}" loading="lazy" alt="{{name}}" />
     {{else if isVideo}}
     <i class="fa-solid fa-file-video av-item-icon"></i>
     {{else if isAudio}}
     <i class="fa-solid fa-file-audio av-item-icon"></i>
+    {{else if isPdf}}
+    <i class="fa-solid fa-file-pdf av-item-icon"></i>
     {{else}}
     <i class="fa-solid fa-file av-item-icon"></i>
     {{/if}}
     <span class="av-item-name">{{name}}</span>
+    <span class="av-item-type">{{fileType}}</span>
   </div>
   {{/each}}
 </div>

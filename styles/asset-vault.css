@@ -151,7 +151,7 @@
 }
 
 /* ---------------------------------------- */
-/*  Body                                    */
+/*  Body (sidebar + content + detail)       */
 /* ---------------------------------------- */
 
 .av-body {
@@ -161,11 +161,11 @@
 }
 
 /* ---------------------------------------- */
-/*  Sidebar                                 */
+/*  Left sidebar (sources)                  */
 /* ---------------------------------------- */
 
 .av-sidebar {
-  width: 150px;
+  width: 140px;
   flex-shrink: 0;
   border-right: 1px solid var(--color-border-light, #c9c7b8);
   overflow-y: auto;
@@ -191,26 +191,19 @@
 }
 
 .av-source-btn:hover {
-  background: var(--color-hover-bg, #ddd5c0);
-  border-color: var(--color-border-light, #c9c7b8);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .av-source-btn.active {
   background: var(--color-active-bg, #c9b88a);
   border-color: var(--color-border-medium, #9f9275);
+  color: #191813;
   font-weight: 600;
 }
 
 /* ---------------------------------------- */
-/*  Main area                               */
+/*  Main content area                       */
 /* ---------------------------------------- */
-
-.av-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
 
 .av-content {
   flex: 1;
@@ -218,16 +211,90 @@
   padding: 0.5rem;
 }
 
-.av-detail {
-  border-top: 1px solid var(--color-border-light, #c9c7b8);
-  height: 200px;
+/* ---------------------------------------- */
+/*  Right detail panel                      */
+/* ---------------------------------------- */
+
+.av-detail-panel {
+  width: 260px;
   flex-shrink: 0;
-  overflow-y: auto;
-  padding: 0.5rem;
+  border-left: 1px solid var(--color-border-light, #c9c7b8);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.av-detail[hidden] {
+.av-detail-panel[hidden] {
   display: none;
+}
+
+.av-detail-preview-area {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.av-detail-img,
+.av-detail-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.av-detail-audio {
+  width: calc(100% - 1rem);
+  margin: auto 0.5rem;
+}
+
+.av-detail-type-icon {
+  font-size: 4rem;
+  color: var(--color-text-light-6, #888);
+}
+
+.av-detail-meta {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.av-detail-filename {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.av-detail-path,
+.av-detail-filetype {
+  color: var(--color-text-light-6, #888);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.av-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border-light, #c9c7b8);
+}
+
+.av-copy-btn,
+.av-confirm-btn {
+  font-size: 0.85rem;
+  padding: 0.3rem 0.6rem;
 }
 
 /* ---------------------------------------- */
@@ -252,7 +319,7 @@
 /* ---------------------------------------- */
 
 .av-items {
-  display: contents; /* overridden per view mode below */
+  display: contents;
 }
 
 .av-item {
@@ -265,6 +332,11 @@
 .av-item:hover {
   background: var(--color-hover-bg, #ddd5c0);
   border-color: var(--color-border-light, #c9c7b8);
+}
+
+.av-item.selected {
+  background: var(--color-active-bg, #c9b88a);
+  border-color: var(--color-border-medium, #9f9275);
 }
 
 .av-item-name {
@@ -280,7 +352,7 @@
 
 .av-items[data-view="grid"] {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 0.4rem;
   align-content: start;
 }
@@ -310,6 +382,10 @@
 
 .av-items[data-view="grid"] .av-item-dir .av-item-icon {
   color: var(--color-level-warning, #c90);
+}
+
+.av-items[data-view="grid"] .av-item-type {
+  display: none;
 }
 
 /* ---------------------------------------- */
@@ -352,6 +428,14 @@
 .av-items[data-view="list"] .av-item-name {
   flex: 1;
   font-size: 0.9rem;
+}
+
+.av-items[data-view="list"] .av-item-type {
+  font-size: 0.75rem;
+  color: var(--color-text-light-6, #888);
+  width: 4rem;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 /* ---------------------------------------- */

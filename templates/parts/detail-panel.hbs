@@ -1,3 +1,30 @@
-<div class="av-detail-placeholder">
-  <p>{{localize "asset-vault.detail.placeholder"}}</p>
+{{#if selectedFile}}
+<div class="av-detail-preview-area">
+  {{#if selectedFile.isImage}}
+  <img class="av-detail-img" src="{{selectedFile.path}}" alt="{{selectedFile.name}}" />
+  {{else if selectedFile.isVideo}}
+  <video class="av-detail-video" src="{{selectedFile.path}}" controls></video>
+  {{else if selectedFile.isAudio}}
+  <audio class="av-detail-audio" src="{{selectedFile.path}}" controls></audio>
+  {{else if selectedFile.isPdf}}
+  <i class="fa-solid fa-file-pdf av-detail-type-icon"></i>
+  {{else}}
+  <i class="fa-solid fa-file av-detail-type-icon"></i>
+  {{/if}}
 </div>
+<div class="av-detail-meta">
+  <div class="av-detail-filename" title="{{selectedFile.name}}">{{selectedFile.name}}</div>
+  <div class="av-detail-path" title="{{selectedFile.path}}">{{selectedFile.path}}</div>
+  <div class="av-detail-filetype">{{selectedFile.fileType}}</div>
+</div>
+<div class="av-detail-actions">
+  <button type="button" class="av-copy-btn" data-action="copyUrl">
+    <i class="fa-solid fa-copy"></i> {{localize "asset-vault.actions.copyUrl"}}
+  </button>
+  {{#if isPicker}}
+  <button type="button" class="av-confirm-btn" data-action="confirmSelection">
+    <i class="fa-solid fa-check"></i> {{localize "asset-vault.actions.select"}}
+  </button>
+  {{/if}}
+</div>
+{{/if}}

@@ -23,6 +23,8 @@
   "asset-vault.settings.scanLocations.comingSoon": "Scan location configuration coming soon.",
 
   "asset-vault.actions.select": "Select",
+  "asset-vault.actions.copyUrl": "Copy URL",
+  "asset-vault.notifications.copiedUrl": "Copied: {path}",
 
   "asset-vault.search.placeholder": "Search assets…",
 
