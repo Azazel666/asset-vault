@@ -1,5 +1,26 @@
 {
   "asset-vault.title": "Asset Vault",
+
   "asset-vault.settings.useDefaultPicker.name": "Use Default File Picker",
-  "asset-vault.settings.useDefaultPicker.hint": "Disable Asset Vault and use Foundry's built-in file picker instead."
+  "asset-vault.settings.useDefaultPicker.hint": "Disable Asset Vault and use Foundry's built-in file picker instead. Requires a page reload.",
+
+  "asset-vault.settings.viewMode.name": "Default View Mode",
+  "asset-vault.settings.viewMode.hint": "Choose whether assets are displayed as a grid or a list by default.",
+  "asset-vault.settings.viewMode.grid": "Grid",
+  "asset-vault.settings.viewMode.list": "List",
+
+  "asset-vault.settings.detachedMode.name": "Detached Window",
+  "asset-vault.settings.detachedMode.hint": "Open the Asset Vault in a detached, resizable window.",
+
+  "asset-vault.settings.showAutoTags.name": "Show Auto-Generated Tags",
+  "asset-vault.settings.showAutoTags.hint": "Display automatically generated tags alongside user-defined tags in the asset browser.",
+
+  "asset-vault.settings.enableForPlayers.name": "Enable for Players",
+  "asset-vault.settings.enableForPlayers.hint": "Allow non-GM players to use the Asset Vault file picker.",
+
+  "asset-vault.settings.scanLocations.name": "Scan Locations",
+  "asset-vault.settings.scanLocations.label": "Configure",
+  "asset-vault.settings.scanLocations.comingSoon": "Scan location configuration coming soon.",
+
+  "asset-vault.actions.select": "Select"
 }

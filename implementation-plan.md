@@ -141,18 +141,16 @@
    - In `init` hook:
      - Store reference: `game.assetVault = { originalPicker: CONFIG.ux.FilePicker }`
      - Override: `CONFIG.ux.FilePicker = AssetVaultPicker;`
-   - Register scene UI button via `getSceneControlButtons` hook:
+   - Override the existing Tile Controls "Browse" button via `getSceneControlButtons` hook instead of adding a new scene control group. This avoids UI interference and hooks into a natural entry point for a media browser. Re-title and re-icon it to Asset Vault, replace `onChange` to open the Hub, and delete `toolclip` to suppress the help animation (which would demo the wrong thing). Skip the override when `useDefaultPicker` is enabled so the original behaviour is fully restored.
      ```javascript
      Hooks.on("getSceneControlButtons", (controls) => {
-       controls.push({
-         name: "asset-vault",
-         title: "asset-vault.title",
-         icon: "fa-solid fa-vault",
-         button: true,
-         onClick: () => {
-           new AssetVaultHub({ mode: "hub" }).render(true);
-         }
-       });
+       if (game.settings.get("asset-vault", "useDefaultPicker")) return;
+       const browse = controls?.tiles?.tools?.browse;
+       if (!browse) return;
+       browse.title = "asset-vault.title";
+       browse.icon = "fa-solid fa-vault";
+       browse.onChange = () => new AssetVaultHub({ mode: "hub" }).render(true);
+       delete browse.toolclip;
      });
      ```
 
@@ -163,10 +161,11 @@
 - [X] Clicking a file picker button (e.g., on a scene background image) opens the picker
 - [X] The picker still functions normally (pass-through) — can browse, select, upload
 - [X] The selected file is correctly applied (e.g., scene background updates)
-- [X] Scene UI controls show an "Asset Vault" button (vault icon)
-- [X] Clicking the scene UI button opens the Hub window showing "Mode: hub"
+- [X] Tile Controls "Browse" button shows vault icon and "Asset Vault" title
+- [X] Clicking it opens the Hub window showing "Mode: hub" (no help animation)
 - [X] Hub window does NOT show a "Select" button
 - [X] `game.assetVault.originalPicker` holds the original FilePicker class
+- [X] Enabling `useDefaultPicker` and reloading restores the original Tile Browser button and toolclip
 
 ---
 
@@ -216,14 +215,14 @@
 
 ### Verification
 
-- [ ] All settings appear in module settings panel
-- [ ] `viewMode` shows a dropdown with Grid/List options
-- [ ] `useDefaultPicker` toggle works:
+- [X] All settings appear in module settings panel
+- [X] `viewMode` shows a dropdown with Grid/List options
+- [X] `useDefaultPicker` toggle works:
   - When **off**: Asset Vault picker opens (reload required)
   - When **on**: Default Foundry picker opens (reload required)
-- [ ] Settings values persist after page reload
-- [ ] "Scan Locations" button appears in settings and opens the placeholder dialog
-- [ ] No errors in console
+- [X] Settings values persist after page reload
+- [X] "Scan Locations" button appears in settings and opens the placeholder dialog
+- [X] No errors in console
 
 ---
 

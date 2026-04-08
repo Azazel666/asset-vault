@@ -1,5 +1,6 @@
 import { AssetVaultHub } from "./hub/AssetVaultHub.js";
 import { AssetVaultPicker } from "./picker/AssetVaultPicker.js";
+import { registerSettings } from "./settings.js";
 
 Hooks.once("init", () => {
   console.log("Asset Vault | Initializing");
@@ -10,7 +11,14 @@ Hooks.once("init", () => {
     AssetVaultHub
   };
 
-  CONFIG.ux.FilePicker = AssetVaultPicker;
+  registerSettings();
+});
+
+Hooks.once("setup", () => {
+  // user-scoped settings are available here (not in init)
+  if (!game.settings.get("asset-vault", "useDefaultPicker")) {
+    CONFIG.ux.FilePicker = AssetVaultPicker;
+  }
 });
 
 Hooks.once("ready", () => {
@@ -18,20 +26,11 @@ Hooks.once("ready", () => {
 });
 
 Hooks.on("getSceneControlButtons", (controls) => {
-  controls["asset-vault"] = {
-    name: "asset-vault",
-    title: "asset-vault.title",
-    icon: "fa-solid fa-vault",
-    tools: {
-      openHub: {
-        name: "openHub",
-        title: "asset-vault.title",
-        icon: "fa-solid fa-vault",
-        button: true,
-        onClick: () => {
-          new AssetVaultHub({ mode: "hub" }).render(true);
-        }
-      }
-    }
-  };
+  if (game.settings.get("asset-vault", "useDefaultPicker")) return;
+  const browse = controls?.tiles?.tools?.browse;
+  if (!browse) return;
+  browse.title = "asset-vault.title";
+  browse.icon = "fa-solid fa-vault";
+  browse.onChange = () => new AssetVaultHub({ mode: "hub" }).render(true);
+  delete browse.toolclip;
 });
