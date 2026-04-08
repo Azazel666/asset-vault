@@ -12,6 +12,13 @@ Hooks.once("init", () => {
   };
 
   registerSettings();
+
+  loadTemplates([
+    "modules/asset-vault/templates/parts/toolbar.hbs",
+    "modules/asset-vault/templates/parts/sidebar.hbs",
+    "modules/asset-vault/templates/parts/content.hbs",
+    "modules/asset-vault/templates/parts/detail-panel.hbs"
+  ]);
 });
 
 Hooks.once("setup", () => {

@@ -1,4 +1,25 @@
 <div class="asset-vault" data-mode="{{mode}}">
-  <p>Asset Vault — Mode: {{mode}}</p>
-  {{#if isPicker}}<button type="button">Select (picker mode)</button>{{/if}}
+  <div class="av-toolbar">
+    {{> "modules/asset-vault/templates/parts/toolbar.hbs"}}
+  </div>
+  <div class="av-body">
+    <aside class="av-sidebar">
+      {{> "modules/asset-vault/templates/parts/sidebar.hbs"}}
+    </aside>
+    <div class="av-main">
+      <div class="av-content">
+        {{> "modules/asset-vault/templates/parts/content.hbs"}}
+      </div>
+      <div class="av-detail" hidden>
+        {{> "modules/asset-vault/templates/parts/detail-panel.hbs"}}
+      </div>
+    </div>
+  </div>
+  {{#if isPicker}}
+  <footer class="av-footer">
+    <button type="button" data-action="confirmSelection" class="av-select-btn">
+      <i class="fa-solid fa-check"></i> {{localize "asset-vault.actions.select"}}
+    </button>
+  </footer>
+  {{/if}}
 </div>

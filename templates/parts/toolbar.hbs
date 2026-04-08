@@ -1,0 +1,17 @@
+<div class="av-search">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search" class="av-search-input"
+    placeholder="{{localize 'asset-vault.search.placeholder'}}" />
+</div>
+<div class="av-view-controls">
+  <button type="button" class="av-view-btn{{#if isGrid}} active{{/if}}"
+    data-action="setViewMode" data-mode="grid"
+    title="{{localize 'asset-vault.settings.viewMode.grid'}}">
+    <i class="fa-solid fa-grip"></i>
+  </button>
+  <button type="button" class="av-view-btn{{#if isList}} active{{/if}}"
+    data-action="setViewMode" data-mode="list"
+    title="{{localize 'asset-vault.settings.viewMode.list'}}">
+    <i class="fa-solid fa-list"></i>
+  </button>
+</div>

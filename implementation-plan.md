@@ -305,17 +305,17 @@
 
 ### Verification
 
-- [ ] Scene UI button opens the Hub with the custom layout (not "Mode: hub" placeholder)
-- [ ] Clicking a file picker button in Foundry opens the same layout in picker mode
-- [ ] Picker mode shows the "Select" footer button
-- [ ] Hub mode does NOT show the "Select" footer button
-- [ ] Search bar visible in toolbar
-- [ ] Sidebar area visible on the left
-- [ ] Content area takes up remaining space
-- [ ] Detail panel is hidden (no file selected)
-- [ ] Layout is responsive — resizing the dialog reflows correctly
-- [ ] No template rendering errors in console
-- [ ] Close button works on both hub and picker
+- [X] Scene UI button opens the Hub with the custom layout (not "Mode: hub" placeholder)
+- [X] Clicking a file picker button in Foundry opens the same layout in picker mode
+- [X] Picker mode shows the "Select" footer button
+- [X] Hub mode does NOT show the "Select" footer button
+- [X] Search bar visible in toolbar
+- [X] Sidebar area visible on the left
+- [X] Content area takes up remaining space
+- [X] Detail panel is hidden (no file selected)
+- [X] Layout is responsive — resizing the dialog reflows correctly
+- [X] No template rendering errors in console
+- [X] Close button works on both hub and picker
 
 ---
 

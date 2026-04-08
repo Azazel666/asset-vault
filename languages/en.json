@@ -22,5 +22,11 @@
   "asset-vault.settings.scanLocations.label": "Configure",
   "asset-vault.settings.scanLocations.comingSoon": "Scan location configuration coming soon.",
 
-  "asset-vault.actions.select": "Select"
+  "asset-vault.actions.select": "Select",
+
+  "asset-vault.search.placeholder": "Search assets…",
+
+  "asset-vault.sidebar.placeholder": "Folders & filters",
+  "asset-vault.content.placeholder": "Assets will appear here",
+  "asset-vault.detail.placeholder": "Select an asset to see details"
 }

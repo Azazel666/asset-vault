@@ -22,9 +22,13 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   async _prepareContext(options) {
+    const viewMode = game.settings.get("asset-vault", "viewMode");
     return {
       mode: this.mode,
-      isPicker: this.mode === "picker"
+      isPicker: this.mode === "picker",
+      viewMode,
+      isGrid: viewMode === "grid",
+      isList: viewMode === "list"
     };
   }
 }
