@@ -104,31 +104,47 @@ export class IndexManager {
     const raw = game.settings.get("asset-vault", "scanLocations");
     const setting = (raw && typeof raw === "object") ? raw : {};
     const isDefault = Object.keys(setting).length === 0;
-    const enabled = (key, def) => isDefault ? def : (setting[key] ?? false);
+    const get = (key, def) => isDefault ? def : (setting[key] ?? false);
 
     const locations = [];
 
-    // Current world
-    if (enabled("world:current", true)) {
-      locations.push({ path: `worlds/${game.world.id}`, sourceKey: "world:current" });
-    }
+    // Current world — always included
+    locations.push({ path: `worlds/${game.world.id}`, sourceKey: "world:current" });
 
     // Active system
-    if (game.system && enabled(`system:${game.system.id}`, true)) {
+    if (game.system && get(`system:${game.system.id}`, true)) {
       locations.push({ path: `systems/${game.system.id}`, sourceKey: `system:${game.system.id}` });
     }
 
-    // Active modules (skip asset-vault itself)
-    for (const mod of game.modules.values()) {
-      if (!mod.active || mod.id === "asset-vault") continue;
-      if (enabled(`module:${mod.id}`, true)) {
+    // Active modules — single toggle covers all of them
+    if (get("indexActiveModules", true)) {
+      for (const mod of game.modules.values()) {
+        if (!mod.active || mod.id === "asset-vault") continue;
         locations.push({ path: `modules/${mod.id}`, sourceKey: `module:${mod.id}` });
       }
     }
 
     // Global assets folder
-    if (enabled("assets", true)) {
+    if (get("assets", true)) {
       locations.push({ path: "assets", sourceKey: "assets" });
+    }
+
+    // Other worlds (any "world:<id>" key that is enabled, excluding current)
+    for (const [key, enabled] of Object.entries(setting)) {
+      if (!key.startsWith("world:") || key === "world:current") continue;
+      if (!enabled) continue;
+      const worldId = key.slice(6);
+      if (worldId !== game.world.id) {
+        locations.push({ path: `worlds/${worldId}`, sourceKey: `world:${worldId}` });
+      }
+    }
+
+    // Other root folders (any "folder:<name>" key that is enabled)
+    for (const [key, enabled] of Object.entries(setting)) {
+      if (!key.startsWith("folder:")) continue;
+      if (!enabled) continue;
+      const folder = key.slice(7);
+      locations.push({ path: folder, sourceKey: `folder:${folder}` });
     }
 
     return locations;

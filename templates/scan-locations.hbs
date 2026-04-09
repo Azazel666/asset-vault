@@ -1,3 +1,81 @@
-<div class="asset-vault-scan-locations">
-  <p>{{localize "asset-vault.settings.scanLocations.comingSoon"}}</p>
-</div>
+<form class="avsl-form">
+
+  <section class="avsl-section">
+    <h3 class="avsl-section-header">{{localize "asset-vault.scanLocations.currentWorld"}}</h3>
+    <label class="avsl-item avsl-item--locked">
+      <input type="checkbox" checked disabled />
+      <span class="avsl-item-name">{{currentWorld.name}}</span>
+      <span class="avsl-badge">{{localize "asset-vault.scanLocations.always"}}</span>
+    </label>
+  </section>
+
+  <section class="avsl-section">
+    <h3 class="avsl-section-header">{{localize "asset-vault.scanLocations.systems"}}</h3>
+    {{#each systems}}
+    <label class="avsl-item">
+      <input type="checkbox" name="system:{{id}}" {{#if checked}}checked{{/if}} />
+      <span class="avsl-item-name">{{name}}</span>
+      {{#if isActive}}<span class="avsl-badge avsl-badge--active">{{localize "asset-vault.scanLocations.active"}}</span>{{/if}}
+    </label>
+    {{else}}
+    <p class="avsl-empty">{{localize "asset-vault.scanLocations.noneFound"}}</p>
+    {{/each}}
+  </section>
+
+  <section class="avsl-section">
+    <h3 class="avsl-section-header">{{localize "asset-vault.scanLocations.modules"}}</h3>
+    <label class="avsl-item">
+      <input type="checkbox" name="indexActiveModules" {{#if indexActiveModules}}checked{{/if}} />
+      <span class="avsl-item-name">{{localize "asset-vault.scanLocations.indexActiveModules"}}</span>
+    </label>
+  </section>
+
+  <section class="avsl-section">
+    <h3 class="avsl-section-header">{{localize "asset-vault.scanLocations.globalAssets"}}</h3>
+    <label class="avsl-item">
+      <input type="checkbox" name="assets" {{#if indexGlobalAssets}}checked{{/if}} />
+      <span class="avsl-item-name">{{localize "asset-vault.scanLocations.indexGlobalAssets"}}</span>
+    </label>
+  </section>
+
+  {{#if otherWorlds.length}}
+  <section class="avsl-section">
+    <h3 class="avsl-section-header">{{localize "asset-vault.scanLocations.otherWorlds"}}</h3>
+    {{#each otherWorlds}}
+    <label class="avsl-item">
+      <input type="checkbox" name="world:{{id}}" {{#if checked}}checked{{/if}} />
+      <span class="avsl-item-name">{{id}}</span>
+    </label>
+    {{/each}}
+  </section>
+  {{/if}}
+
+  {{#if otherFolders.length}}
+  <section class="avsl-section">
+    <h3 class="avsl-section-header">{{localize "asset-vault.scanLocations.otherFolders"}}</h3>
+    {{#each otherFolders}}
+    <label class="avsl-item">
+      <input type="checkbox" name="folder:{{name}}" {{#if checked}}checked{{/if}} />
+      <span class="avsl-item-name">{{name}}</span>
+    </label>
+    {{/each}}
+  </section>
+  {{/if}}
+
+  <div class="avsl-footer">
+    <span class="avsl-index-size">
+      {{localize "asset-vault.scanLocations.indexSize"}}: {{indexSize}}
+    </span>
+    <div class="avsl-footer-actions">
+      <button type="button" data-action="rebuild" {{#if isRebuilding}}disabled{{/if}}>
+        <i class="fa-solid {{#if isRebuilding}}fa-spinner fa-spin{{else}}fa-rotate-right{{/if}}"></i>
+        {{localize "asset-vault.scanLocations.rebuild"}}
+      </button>
+      <button type="button" data-action="save" class="avsl-save-btn">
+        <i class="fa-solid fa-floppy-disk"></i>
+        {{localize "asset-vault.scanLocations.save"}}
+      </button>
+    </div>
+  </div>
+
+</form>

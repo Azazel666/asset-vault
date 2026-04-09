@@ -44,5 +44,24 @@
   "asset-vault.sidebar.favorites": "Favorites",
   "asset-vault.sidebar.favoritesEmpty": "No favorites yet",
   "asset-vault.content.empty": "No files found in this folder",
-  "asset-vault.detail.placeholder": "Select an asset to see details"
+  "asset-vault.detail.placeholder": "Select an asset to see details",
+
+  "asset-vault.scanLocations.currentWorld": "Current World",
+  "asset-vault.scanLocations.systems": "Systems",
+  "asset-vault.scanLocations.modules": "Modules",
+  "asset-vault.scanLocations.globalAssets": "Global Assets",
+  "asset-vault.scanLocations.otherWorlds": "Other Worlds",
+  "asset-vault.scanLocations.otherFolders": "Other Root Folders",
+
+  "asset-vault.scanLocations.indexActiveModules": "Index all active modules",
+  "asset-vault.scanLocations.indexGlobalAssets": "Index assets/ folder",
+
+  "asset-vault.scanLocations.always": "Always",
+  "asset-vault.scanLocations.active": "Active",
+  "asset-vault.scanLocations.noneFound": "None found",
+
+  "asset-vault.scanLocations.indexSize": "Indexed files",
+  "asset-vault.scanLocations.rebuild": "Rebuild Index",
+  "asset-vault.scanLocations.save": "Save",
+  "asset-vault.scanLocations.saved": "Scan locations saved."
 }

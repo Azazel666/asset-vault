@@ -3,7 +3,8 @@
     "allow": [
       "Bash(grep -r \"tiles.*tools\\\\|tools.*tiles\\\\|tiles\\\\\\\\.tools\\\\|tiles.*browse\" /d/FoundryVTT-Data/Data/modules --include=\"*.js\" -B 3 -A 3)",
       "Bash(grep -r \"controls\\\\\\\\.tiles\\\\|const.*tiles.*control\\\\|tiles.*=.*controls\" /d/FoundryVTT-Data/Data/modules --include=\"*.js\" -B 2 -A 8)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(session rename:*)"
     ]
   }
 }

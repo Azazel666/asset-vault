@@ -897,18 +897,18 @@ Note: debounce wiring is part of Iteration 12 (UI integration).
 
 ### Verification
 
-- [ ] Scan Locations dialog opens from module settings
-- [ ] Current world is shown and locked on
-- [ ] All installed systems are listed with correct active-system default
-- [ ] Module toggle is present and defaults to on
-- [ ] Global assets toggle is present and defaults to on
-- [ ] Other worlds are listed (excluding current), all defaulting to off
-- [ ] Other Data root folders are discovered and listed
-- [ ] Saving settings persists — reopening shows same state
-- [ ] "Rebuild Index" button triggers a rebuild
-- [ ] Rebuild respects the saved configuration (only scans enabled locations)
-- [ ] First-run defaults are applied when setting is empty
-- [ ] No errors when a scan location has no files
+- [X] Dialog opens from Module Settings → Scan Locations → Configure
+- [X] Current world shown with locked "Always" badge, checkbox disabled
+- [X] Installed systems listed; active system has "Active" badge and defaults to checked
+- [X] "Index all active modules" toggle present and defaults to on
+- [X] "Index assets/ folder" toggle present and defaults to on
+- [X] Other worlds listed (excluding current world), all unchecked by default
+- [X] Other root folders discovered and listed (any folders in Data/ besides worlds/modules/systems/assets)
+- [X] Index size shown in footer (e.g. "Indexed files: 1234")
+- [X] Save button persists settings — reopen dialog and checkboxes reflect saved state
+- [X] Rebuild button triggers a rebuild; button shows spinner while building
+- [X] After rebuild, index reflects only enabled locations (e.g. disable a system → its files gone from index)
+- [X] No console errors opening the dialog
 
 ---
 

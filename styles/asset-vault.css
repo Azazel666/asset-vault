@@ -609,3 +609,115 @@
 .av-select-btn {
   padding: 0.4rem 1.2rem;
 }
+
+/* ---------------------------------------- */
+/*  Scan Locations dialog                   */
+/* ---------------------------------------- */
+
+.avsl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.5rem 0.75rem 0;
+}
+
+.avsl-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-border-light, #c9c7b8);
+}
+
+.avsl-section:last-of-type {
+  border-bottom: none;
+}
+
+.avsl-section-header {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-light-6, #888);
+  margin: 0 0 0.25rem;
+}
+
+.avsl-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.25rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.avsl-item:hover {
+  background: var(--color-hover-bg, #ddd5c0);
+}
+
+.avsl-item--locked {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.avsl-item--locked:hover {
+  background: transparent;
+}
+
+.avsl-item input[type="checkbox"] {
+  flex-shrink: 0;
+}
+
+.avsl-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.avsl-badge {
+  font-size: 0.68rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  background: var(--color-border-light, #c9c7b8);
+  color: var(--color-text-primary, #191813);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.avsl-badge--active {
+  background: var(--color-active-bg, #c9b88a);
+}
+
+.avsl-empty {
+  font-size: 0.8rem;
+  color: var(--color-text-light-6, #888);
+  font-style: italic;
+  margin: 0;
+  padding: 0.1rem 0.25rem;
+}
+
+.avsl-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0 0.25rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--color-border-light, #c9c7b8);
+}
+
+.avsl-index-size {
+  font-size: 0.78rem;
+  color: var(--color-text-light-6, #888);
+}
+
+.avsl-footer-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.avsl-save-btn {
+  font-weight: 600;
+}
