@@ -1092,18 +1092,37 @@ Note: debounce wiring is part of Iteration 12 (UI integration).
 
 ### Verification
 
-- [ ] `[type:image]` returns only image files
-- [ ] `[type:audio]` returns only audio files
-- [ ] `[tag:npc]` returns files with "npc" in either autoTags or userTags
-- [ ] `[source:module:pf2e]` returns only files from the pf2e module
-- [ ] `[ext:webp]` returns only .webp files
-- [ ] `[type:image] [tag:boss] dragon` returns image files tagged "boss" with "dragon" in name/tags
-- [ ] Multiple filters are AND-combined: `[type:image] [type:audio]` returns nothing (a file can't be both)
-- [ ] Operators are case-insensitive: `[Type:Image]` works
-- [ ] Free text alone (no operators) works as before (fuzzy search)
-- [ ] Operators alone (no free text) return filtered results sorted alphabetically
-- [ ] Unknown operators (e.g., `[foo:bar]`) are treated as free text, not errors
-- [ ] Syntax hint is visible near search bar
+- [X] `[type:image]` returns only image files
+- [X] `[type:audio]` returns only audio files
+- [X] `[tag:npc]` returns files with "npc" in either autoTags or userTags
+- [X] `[source:module:pf2e]` returns only files from the pf2e module
+- [X] `[ext:webp]` returns only .webp files
+- [X] `[type:image] [tag:boss] dragon` returns image files tagged "boss" with "dragon" in name/tags
+- [X] Multiple filters are AND-combined: `[type:image] [type:audio]` returns nothing (a file can't be both)
+- [X] Operators are case-insensitive: `[Type:Image]` works
+- [X] Free text alone (no operators) works as before (fuzzy search)
+- [X] Operators alone (no free text) return filtered results sorted alphabetically
+- [X] Unknown operators (e.g., `[foo:bar]`) are treated as free text, not errors
+- [X] Syntax hint is visible near search bar
+
+### Enhancement (added during implementation)
+
+Autocomplete dropdown + inline filter chips were added on top of the core search syntax:
+
+- **`scripts/search/SearchAutocomplete.js`** (new): Dropdown attached to the hub window, positioned with `position: fixed`. Typing `[` shows available operators; selecting one shows contextual value completions from the live index. Arrow keys navigate, Enter/Tab confirm, Escape dismisses. Click-outside closes.
+- **Filter chips in search bar**: Confirmed operators render as dismissible `×` chips inside `.av-search` to the left of the free-text input. Raw `[operator:value]` syntax never appears in the input field. Hub state split into `#searchFilters[]` + `#searchFreeText`; `get #searchQuery()` assembles the full query for `SearchEngine`.
+
+### Verification (enhancement)
+
+- [X] Typing `[` shows operator suggestions: `type`, `tag`, `source`, `ext`
+- [X] Selecting an operator key immediately shows value completions
+- [X] `[type:]` completions are `image`, `video`, `audio`, `pdf` (no "other")
+- [X] `[tag:]` completions come from the live index, sorted by frequency
+- [X] `[source:]` and `[ext:]` completions come from the live index
+- [X] Selecting a value creates a chip in the search bar; raw text is cleared from the input
+- [X] Clicking × on a chip removes that filter and re-runs search
+- [X] Clear button removes all chips and free text
+- [X] Arrow keys navigate dropdown without triggering a search
 
 ---
 
@@ -1146,8 +1165,8 @@ Note: debounce wiring is part of Iteration 12 (UI integration).
 - [ ] Source section lists active modules, systems, world, assets
 - [ ] Clicking a tag chip adds `[tag:value]` to search bar
 - [ ] "Clear all filters" removes all operators from search bar
-- [ ] Active filters display as dismissible chips above content
-- [ ] Dismissing a chip removes the corresponding operator and re-runs search
+- [X] Active filters display as dismissible chips (inline in the search bar, added in Iteration 16 enhancement)
+- [X] Dismissing a chip removes the corresponding operator and re-runs search
 - [ ] Facet counts update dynamically after each search
 - [ ] Zero-count types/sources are greyed out
 - [ ] Combining filter panel clicks with typed free text works correctly

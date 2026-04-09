@@ -35,6 +35,8 @@
   "asset-vault.search.clear": "Clear search",
   "asset-vault.search.resultCount": "{count} result(s) for \"{query}\"",
   "asset-vault.search.noResults": "No results found",
+  "asset-vault.search.hintTitle": "Search syntax help",
+  "asset-vault.search.hint": "Operators: [type:image] · [tag:npc] · [source:module:id] · [ext:webp] — combine with free text. Comma separates OR terms.",
 
   "asset-vault.index.statusNone": "Index not built — search unavailable. Open module settings to configure scan locations.",
   "asset-vault.index.statusBuilding": "Indexing assets in the background…",

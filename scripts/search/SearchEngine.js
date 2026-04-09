@@ -1,12 +1,16 @@
 import uFuzzy from "../vendor/uFuzzy.esm.js";
+import { parseQuery } from "./QueryParser.js";
 
 const uf = new uFuzzy({ intraMode: 1 });
 
 /**
  * Wraps uFuzzy to search the asset index haystack.
  *
- * Haystack: one string per entry — "filename tag1 tag2 ..."
- * Results are returned sorted by uFuzzy's relevance order.
+ * Search semantics:
+ *   - [operator:value] tokens are extracted and AND-combined as pre-filters.
+ *   - Remaining free text is fuzzy-searched against the filtered candidate set.
+ *   - Comma-separated free-text terms are OR-combined.
+ *   - Operators-only query returns filtered results sorted alphabetically.
  */
 export class SearchEngine {
   /** @type {string[]} */
@@ -36,8 +40,6 @@ export class SearchEngine {
 
   /**
    * Search the index and return matching entries sorted by relevance.
-   * Comma-separated terms are treated as OR: each term is searched
-   * independently and results are merged (deduped, first-match order).
    * Returns an empty array for an empty query or if no results found.
    * @param {string} query
    * @returns {import("../index/IndexEntry.js").IndexEntry[]}
@@ -45,14 +47,35 @@ export class SearchEngine {
   search(query) {
     if (!query || !query.trim() || this.#haystack.length === 0) return [];
 
-    const terms = query.split(",").map(t => t.trim()).filter(Boolean);
-    if (terms.length === 1) return this.#searchTerm(terms[0]);
+    const { filters, freeText } = parseQuery(query);
 
-    // Multi-term OR: merge results preserving first-occurrence order
+    // Build candidate set: full index or operator-filtered subset
+    const candidates = filters.length === 0
+      ? this.#entries.map((entry, i) => ({ entry, hay: this.#haystack[i] }))
+      : this.#entries
+          .map((entry, i) => ({ entry, hay: this.#haystack[i] }))
+          .filter(({ entry }) => this.#matchesFilters(entry, filters));
+
+    if (candidates.length === 0) return [];
+
+    // Operators-only: return filtered set sorted alphabetically
+    if (!freeText) {
+      return candidates.map(c => c.entry)
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    // Free-text: fuzzy-search against the candidate haystack
+    // Comma-separated terms are OR-combined
+    const tempHaystack = candidates.map(c => c.hay);
+    const tempEntries  = candidates.map(c => c.entry);
+    const terms = freeText.split(",").map(t => t.trim()).filter(Boolean);
+
+    if (terms.length === 1) return this.#fuzzySearch(tempHaystack, tempEntries, terms[0]);
+
     const seen = new Set();
     const results = [];
     for (const term of terms) {
-      for (const entry of this.#searchTerm(term)) {
+      for (const entry of this.#fuzzySearch(tempHaystack, tempEntries, term)) {
         if (!seen.has(entry.path)) {
           seen.add(entry.path);
           results.push(entry);
@@ -62,16 +85,51 @@ export class SearchEngine {
     return results;
   }
 
+  /* -------------------------------------------- */
+  /*  Private helpers                             */
+  /* -------------------------------------------- */
+
   /**
-   * @param {string} term  Single trimmed search term (no commas)
+   * @param {import("../index/IndexEntry.js").IndexEntry} entry
+   * @param {Array<{key:string, value:string}>} filters
+   * @returns {boolean}
+   */
+  #matchesFilters(entry, filters) {
+    for (const { key, value } of filters) {
+      switch (key) {
+        case "type":
+          if (entry.type !== value) return false;
+          break;
+        case "tag": {
+          const allTags = [...entry.autoTags, ...entry.userTags];
+          if (!allTags.includes(value)) return false;
+          break;
+        }
+        case "source":
+          if (!entry.source.toLowerCase().includes(value)) return false;
+          break;
+        case "ext":
+          if (!entry.path.toLowerCase().endsWith(`.${value}`)) return false;
+          break;
+        default:
+          break;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * @param {string[]} haystack
+   * @param {import("../index/IndexEntry.js").IndexEntry[]} entries
+   * @param {string} term
    * @returns {import("../index/IndexEntry.js").IndexEntry[]}
    */
-  #searchTerm(term) {
-    if (!term || this.#haystack.length === 0) return [];
-    const [idxs, info, order] = uf.search(this.#haystack, term);
+  #fuzzySearch(haystack, entries, term) {
+    if (!term || haystack.length === 0) return [];
+    const [idxs, , order] = uf.search(haystack, term);
     if (!idxs || idxs.length === 0) return [];
     const sorted = order ?? Array.from({ length: idxs.length }, (_, i) => i);
-    return sorted.map(i => this.#entries[idxs[i]]).filter(Boolean);
+    return sorted.map(i => entries[idxs[i]]).filter(Boolean);
   }
 
   get size() {

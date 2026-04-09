@@ -97,16 +97,25 @@
   flex-shrink: 0;
 }
 
+/* Search syntax hint */
+.av-search-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-light-6, #888);
+  padding: 0.15rem 0.5rem 0.1rem;
+  font-style: italic;
+}
+
 /* Search row */
 .av-search {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   flex: 1;
-  gap: 0.4rem;
+  gap: 0.3rem;
   background: var(--color-input-bg, #f0ede0);
   border: 1px solid var(--color-border-light, #c9c7b8);
   border-radius: 4px;
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.5rem;
 }
 
 .av-search i {
@@ -116,6 +125,7 @@
 
 .av-search-input {
   flex: 1;
+  min-width: 80px;
   border: none;
   background: transparent;
   outline: none;
@@ -813,5 +823,83 @@
 }
 
 .avsl-save-btn {
+  font-weight: 600;
+}
+
+/* ---------------------------------------- */
+/*  Search filter chips                     */
+/* ---------------------------------------- */
+
+.av-search-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: rgba(100, 120, 160, 0.18);
+  border: 1px solid rgba(100, 120, 160, 0.35);
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: #191813;
+}
+
+.av-search-chip-remove {
+  background: transparent;
+  border: none;
+  padding: 0 0.1rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--color-text-light-6, #888);
+  line-height: 1;
+}
+
+.av-search-chip-remove:hover {
+  color: var(--color-level-error, #c53);
+}
+
+/* ---------------------------------------- */
+/*  Autocomplete dropdown                   */
+/* ---------------------------------------- */
+
+.av-autocomplete {
+  position: fixed;
+  z-index: 9999;
+  background: #f0ede0;
+  border: 1px solid #c9c7b8;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  margin: 0;
+  padding: 0.2rem 0;
+  list-style: none;
+  min-width: 180px;
+  max-height: 220px;
+  overflow-y: auto;
+  display: none;
+}
+
+.av-autocomplete:not([hidden]) {
+  display: block;
+}
+
+.av-autocomplete[hidden] {
+  display: none !important;
+}
+
+.av-autocomplete-item {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+  color: #191813;
+}
+
+.av-autocomplete-item:hover {
+  background: #ddd5c0;
+}
+
+.av-autocomplete-item--active {
+  background: #c9b88a;
+  color: #191813;
   font-weight: 600;
 }

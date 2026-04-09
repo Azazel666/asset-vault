@@ -1,3 +1,5 @@
+import { SearchAutocomplete } from "../search/SearchAutocomplete.js";
+
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 const { FilePicker } = foundry.applications.apps;
 
@@ -6,13 +8,20 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   #sidebarRootDirs = null;
   #sidebarSourceKey = null;
   #sidebarCollapsed = false;
-  #searchQuery = "";
+  #searchFilters = [];
+  #searchFreeText = "";
   #searchCursorStart = 0;
   #searchCursorEnd = 0;
   #lastBrowsePath = "";
   #lastBrowseSource = "data";
   #indexStatusHook = null;
+  #autocomplete = null;
   selectedFile = null;
+
+  get #searchQuery() {
+    const ops = this.#searchFilters.map(f => `[${f.key}:${f.value}]`).join(" ");
+    return [ops, this.#searchFreeText].filter(Boolean).join(" ");
+  }
 
   constructor(options = {}) {
     super(options);
@@ -46,7 +55,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       confirmSelection: AssetVaultHub.#onConfirmSelection,
       copyUrl: AssetVaultHub.#onCopyUrl,
       addTag: AssetVaultHub.#onAddTag,
-      removeTag: AssetVaultHub.#onRemoveTag
+      removeTag: AssetVaultHub.#onRemoveTag,
+      removeSearchFilter: AssetVaultHub.#onRemoveSearchFilter
     }
   };
 
@@ -80,7 +90,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     let dirs = [];
     let files = [];
     let browseError = null;
-    const isSearchMode = this.#searchQuery.length > 0;
+    const isSearchMode = this.#searchFilters.length > 0 || this.#searchFreeText.length > 0;
 
     if (isSearchMode) {
       // Search mode: skip FilePicker.browse, return index results
@@ -167,7 +177,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       isGrid: viewMode === "grid",
       isList: viewMode === "list",
       isSearchMode,
-      searchQuery: this.#searchQuery,
+      searchQuery: this.#searchFreeText,
+      searchFilters: this.#searchFilters,
       searchResultCount: isSearchMode ? files.length : 0,
       searchResultText: isSearchMode
         ? game.i18n.format("asset-vault.search.resultCount", { count: files.length, query: this.#searchQuery })
@@ -215,53 +226,83 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     const sidebar = this.element.querySelector(".av-sidebar");
     if (sidebar) {
       sidebar.classList.toggle("av-collapsed", this.#sidebarCollapsed);
-      sidebar.classList.toggle("av-search-hidden", this.#searchQuery.length > 0);
+      sidebar.classList.toggle("av-search-hidden", this.#searchFilters.length > 0 || this.#searchFreeText.length > 0);
     }
 
-    // Wire search input
+    // Wire search input + autocomplete
     const searchInput = this.element.querySelector(".av-search-input");
     const clearBtn = this.element.querySelector(".av-search-clear");
+
     if (searchInput) {
-      searchInput.value = this.#searchQuery;
-      if (clearBtn) clearBtn.style.display = this.#searchQuery ? "" : "none";
+      searchInput.value = this.#searchFreeText;
+      const hasSearch = this.#searchFilters.length > 0 || this.#searchFreeText.length > 0;
+      if (clearBtn) clearBtn.style.display = hasSearch ? "" : "none";
 
       // Restore focus and cursor position after re-render so typing isn't disrupted
-      if (this.#searchQuery) {
+      if (this.#searchFreeText) {
         searchInput.focus();
         searchInput.setSelectionRange(this.#searchCursorStart, this.#searchCursorEnd);
       }
 
       // Show/hide clear button immediately as user types (before debounce)
       searchInput.addEventListener("input", e => {
-        if (clearBtn) clearBtn.style.display = e.target.value ? "" : "none";
+        const hasAny = e.target.value || this.#searchFilters.length > 0;
+        if (clearBtn) clearBtn.style.display = hasAny ? "" : "none";
       });
-
-      const doSearch = foundry.utils.debounce((query) => {
-        if (query && !this.#searchQuery) {
-          // Entering search mode — save browse location to restore on clear
-          this.#lastBrowsePath = this.target;
-          this.#lastBrowseSource = this.activeSource;
-        }
-        // Save cursor position before render so it can be restored
-        this.#searchCursorStart = searchInput.selectionStart ?? 0;
-        this.#searchCursorEnd = searchInput.selectionEnd ?? 0;
-        this.#searchQuery = query;
-        if (query) {
-          this.render();
-        } else {
-          this.navigate(this.#lastBrowsePath, this.#lastBrowseSource);
-        }
-      }, 150);
-
-      searchInput.addEventListener("input", e => doSearch(e.target.value));
     }
+
+    // Create or reattach the autocomplete
+    if (!this.#autocomplete) {
+      this.#autocomplete = new SearchAutocomplete(
+        this.element,
+        () => this.element.querySelector(".av-search-input"),
+        (key, value) => {
+          // Operator chip confirmed — add to filters, clear free text, re-render
+          const wasSearching = this.#searchFreeText.length > 0 || this.#searchFilters.length > 0;
+          if (!wasSearching) {
+            this.#lastBrowsePath = this.target;
+            this.#lastBrowseSource = this.activeSource;
+          }
+          this.#searchFilters = [...this.#searchFilters, { key, value }];
+          this.#searchFreeText = "";
+          this.#searchCursorStart = 0;
+          this.#searchCursorEnd = 0;
+          this.render();
+        },
+        foundry.utils.debounce((text) => {
+          const curInput = this.element?.querySelector(".av-search-input");
+          this.#searchCursorStart = curInput?.selectionStart ?? 0;
+          this.#searchCursorEnd   = curInput?.selectionEnd   ?? 0;
+          const wasSearching = this.#searchFreeText.length > 0 || this.#searchFilters.length > 0;
+          if (text && !wasSearching) {
+            this.#lastBrowsePath   = this.target;
+            this.#lastBrowseSource = this.activeSource;
+          }
+          this.#searchFreeText = text;
+          if (text || this.#searchFilters.length > 0) this.render();
+          else this.navigate(this.#lastBrowsePath, this.#lastBrowseSource);
+        }, 150)
+      );
+    }
+    if (searchInput) this.#autocomplete.attach(searchInput);
 
     if (clearBtn) {
       clearBtn.addEventListener("click", () => {
         if (searchInput) searchInput.value = "";
         clearBtn.style.display = "none";
-        this.#searchQuery = "";
+        this.#searchFreeText = "";
+        this.#searchFilters = [];
         this.navigate(this.#lastBrowsePath, this.#lastBrowseSource);
+      });
+    }
+
+    // Search syntax hint toggle
+    const hintBtn = this.element.querySelector(".av-search-hint-btn");
+    const hintEl  = this.element.querySelector(".av-search-hint");
+    if (hintBtn && hintEl) {
+      hintBtn.addEventListener("click", () => {
+        hintEl.toggleAttribute("hidden");
+        hintBtn.classList.toggle("active", !hintEl.hasAttribute("hidden"));
       });
     }
 
@@ -290,6 +331,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       Hooks.off("assetVault.indexStatus", this.#indexStatusHook);
       this.#indexStatusHook = null;
     }
+    this.#autocomplete?.destroy();
+    this.#autocomplete = null;
     return super.close(options);
   }
 
@@ -504,6 +547,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     this.target = path;
     this.#browseResult = null;
     this.selectedFile = null;
+    this.#searchFreeText = "";
+    this.#searchFilters = [];
     this.render();
   }
 
@@ -570,5 +615,15 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     const newTags = entry.userTags.filter(t => t !== tag);
     await index.updateUserTags(this.selectedFile.path, newTags);
     this.#renderDetailPanel();
+  }
+
+  static #onRemoveSearchFilter(event, target) {
+    const { key, value } = target.dataset;
+    this.#searchFilters = this.#searchFilters.filter(f => !(f.key === key && f.value === value));
+    if (this.#searchFilters.length === 0 && !this.#searchFreeText) {
+      this.navigate(this.#lastBrowsePath, this.#lastBrowseSource);
+    } else {
+      this.render();
+    }
   }
 }

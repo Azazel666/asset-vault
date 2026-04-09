@@ -25,6 +25,13 @@
 <div class="av-toolbar-row av-search-row">
   <div class="av-search">
     <i class="fa-solid fa-magnifying-glass"></i>
+    {{#each searchFilters}}
+    <span class="av-search-chip" data-key="{{key}}" data-value="{{value}}">
+      <span class="av-search-chip-label">{{key}}: {{value}}</span>
+      <button type="button" class="av-search-chip-remove"
+        data-action="removeSearchFilter" data-key="{{key}}" data-value="{{value}}">×</button>
+    </span>
+    {{/each}}
     <input type="search" class="av-search-input"
       placeholder="{{localize 'asset-vault.search.placeholder'}}" />
     <button type="button" class="av-search-clear" title="{{localize 'asset-vault.search.clear'}}">
@@ -42,5 +49,12 @@
       title="{{localize 'asset-vault.settings.viewMode.list'}}">
       <i class="fa-solid fa-list"></i>
     </button>
+    <button type="button" class="av-view-btn av-search-hint-btn"
+      title="{{localize 'asset-vault.search.hintTitle'}}">
+      <i class="fa-solid fa-circle-question"></i>
+    </button>
   </div>
+</div>
+<div class="av-search-hint" hidden>
+  {{localize "asset-vault.search.hint"}}
 </div>
