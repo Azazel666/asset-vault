@@ -632,18 +632,19 @@
 
 ### Verification
 
-- [ ] Scanner discovers files in the current world directory
-- [ ] Scanner discovers files in active module directories
-- [ ] Scanner discovers files in the active system directory
-- [ ] Scanner discovers files in the global assets folder
-- [ ] Progress updates are emitted during scan (log to console)
-- [ ] Scan completes and `IndexManager.status` becomes `"ready"`
-- [ ] `index.json` is written with all discovered entries
-- [ ] Reloading the world loads the existing index without rescanning
-- [ ] Scan does not block world loading (UI remains responsive)
-- [ ] Files with unsupported extensions are excluded
-- [ ] Scan handles empty directories gracefully
-- [ ] Scan handles inaccessible directories gracefully (logs warning, continues)
+- [X] Console shows "Starting background index rebuild..." on every world load
+- [X] Console shows per-directory scan log lines with actual subdirectory paths (not just root)
+- [X] Console shows "Rebuild complete: N entries indexed" when done
+- [X] `game.assetVault.index.status === "ready"` after rebuild finishes
+- [X] `game.assetVault.index.size > 0` — files were found
+- [X] Scanner discovers files in the current world directory
+- [X] Scanner discovers files in active module directories
+- [X] Scanner discovers files in the active system directory
+- [X] Scanner discovers files in the global assets folder (if it exists)
+- [X] Files with unsupported extensions (`.js`, `.json`, `.css`) are not in the index
+- [X] Scan does not block world loading (Foundry UI appears before scan finishes)
+- [X] `game.assetVault.index.rebuild()` — manually triggered rebuild works from console
+- [X] Inaccessible/missing directories are skipped without crashing (assets/ if absent: no error thrown)
 
 ---
 

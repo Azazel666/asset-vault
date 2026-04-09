@@ -1,4 +1,6 @@
 import { IndexStore } from "./IndexStore.js";
+import { Scanner } from "./Scanner.js";
+import { createEntry, typeFromPath } from "./IndexEntry.js";
 
 /**
  * Singleton index manager attached to `game.assetVault.index`.
@@ -34,19 +36,94 @@ export class IndexManager {
   }
 
   /* -------------------------------------------- */
-  /*  Rebuild (implemented in Iteration 9)        */
+  /*  Rebuild                                     */
   /* -------------------------------------------- */
 
   /**
-   * Full rescan of all configured locations. Stub for Iteration 9.
+   * Full rescan of all configured locations.
+   * Runs asynchronously — does not block the caller.
    * @returns {Promise<void>}
    */
   async rebuild() {
     this.status = "building";
     this.progress = 0;
-    // Scanner implementation added in Iteration 9
-    this.status = "ready";
-    this.progress = 100;
+
+    try {
+      const locations = this.#resolveLocations();
+      console.log(`Asset Vault | Starting rebuild across ${locations.length} location(s)...`);
+
+      const scanner = new Scanner({
+        onProgress: (dirsScanned, currentPath) => {
+          console.log(`Asset Vault | Scanning dir #${dirsScanned}: ${currentPath}`);
+        }
+      });
+
+      const found = await scanner.scan(locations);
+      console.log(`Asset Vault | Scanner found ${found.length} file(s)`);
+
+      const entries = found.map(({ filePath, sourceKey }) =>
+        createEntry(filePath, {
+          type: typeFromPath(filePath),
+          source: sourceKey,
+          autoTags: []   // populated by AutoTagger in Iteration 10
+        })
+      );
+
+      this.#store.clear();
+      this.#store.addEntries(entries);
+      await this.#store.save();
+
+      this.status = "ready";
+      this.progress = 100;
+      console.log(`Asset Vault | Rebuild complete: ${entries.length} entries indexed`);
+    } catch(err) {
+      console.error("Asset Vault | IndexManager.rebuild failed:", err);
+      this.status = "error";
+    }
+  }
+
+  /* -------------------------------------------- */
+  /*  Location resolution                         */
+  /* -------------------------------------------- */
+
+  /**
+   * Build the list of {path, sourceKey} objects to scan based on the
+   * scanLocations setting.  When the setting is empty (first run), all
+   * four default categories are enabled.
+   * @returns {Array<{path: string, sourceKey: string}>}
+   */
+  #resolveLocations() {
+    const raw = game.settings.get("asset-vault", "scanLocations");
+    const setting = (raw && typeof raw === "object") ? raw : {};
+    const isDefault = Object.keys(setting).length === 0;
+    const enabled = (key, def) => isDefault ? def : (setting[key] ?? false);
+
+    const locations = [];
+
+    // Current world
+    if (enabled("world:current", true)) {
+      locations.push({ path: `worlds/${game.world.id}`, sourceKey: "world:current" });
+    }
+
+    // Active system
+    if (game.system && enabled(`system:${game.system.id}`, true)) {
+      locations.push({ path: `systems/${game.system.id}`, sourceKey: `system:${game.system.id}` });
+    }
+
+    // Active modules (skip asset-vault itself)
+    for (const mod of game.modules.values()) {
+      if (!mod.active || mod.id === "asset-vault") continue;
+      if (enabled(`module:${mod.id}`, true)) {
+        locations.push({ path: `modules/${mod.id}`, sourceKey: `module:${mod.id}` });
+      }
+    }
+
+    // Global assets folder
+    if (enabled("assets", true)) {
+      locations.push({ path: "assets", sourceKey: "assets" });
+    }
+
+    return locations;
   }
 
   /* -------------------------------------------- */
@@ -76,7 +153,7 @@ export class IndexManager {
   }
 
   /* -------------------------------------------- */
-  /*  Write API (used by Scanner in Iteration 9)  */
+  /*  Write API                                   */
   /* -------------------------------------------- */
 
   /** @param {import("./IndexEntry.js").IndexEntry[]} entries */

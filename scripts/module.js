@@ -36,6 +36,11 @@ Hooks.once("ready", async () => {
   game.assetVault.index = index;
   await index.initialize();
 
+  // Always rebuild in background so newly activated modules/systems are picked up.
+  // The existing index (if any) remains queryable while the scan runs.
+  console.log("Asset Vault | Starting background index rebuild...");
+  index.rebuild().catch(err => console.error("Asset Vault | Background rebuild error:", err));
+
   console.log(`Asset Vault | Index status: ${index.status}`);
 });
 
