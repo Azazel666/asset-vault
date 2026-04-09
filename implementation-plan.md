@@ -565,14 +565,14 @@
 
 ### Verification
 
-- [ ] `IndexStore.load()` returns empty index when no file exists
-- [ ] `IndexStore.save()` writes a valid JSON file to `worlds/<world>/asset-vault/index.json`
-- [ ] File is visible via Foundry's file browser in the world directory
-- [ ] `IndexStore.load()` correctly reads back what was saved
-- [ ] `IndexManager` initializes and attaches to `game.assetVault.index`
-- [ ] `IndexManager.status` starts as `"none"` when no index file exists
-- [ ] `IndexManager.status` is `"ready"` after loading an existing index
-- [ ] No errors when the asset-vault subfolder doesn't exist yet (auto-created)
+- [X] No console errors on world load (no 404 noise — directory checked via FilePicker.browse before fetch)
+- [X] `game.assetVault.index` exists in console after world load
+- [X] `game.assetVault.index.status === "none"` when no index file exists yet
+- [X] Run in console: `game.assetVault.index.addEntries([{path:"test/foo.png",name:"foo.png",type:"image",source:"world:current",autoTags:[],userTags:[],indexedAt:Date.now()}]); await game.assetVault.index.save()` — no errors
+- [X] File `worlds/<worldId>/asset-vault/index.json` visible in Foundry file browser
+- [X] Reload world — `game.assetVault.index.status === "ready"` and `game.assetVault.index.size === 1`
+- [X] `game.assetVault.index.getEntry("test/foo.png")` returns the entry
+- [X] `game.assetVault.index.getHaystack()` returns `["foo.png"]`
 
 ---
 

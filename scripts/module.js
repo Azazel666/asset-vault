@@ -1,6 +1,7 @@
 import { AssetVaultHub } from "./hub/AssetVaultHub.js";
 import { AssetVaultPicker } from "./picker/AssetVaultPicker.js";
 import { registerSettings } from "./settings.js";
+import { IndexManager } from "./index/IndexManager.js";
 
 Hooks.once("init", () => {
   console.log("Asset Vault | Initializing");
@@ -28,8 +29,14 @@ Hooks.once("setup", () => {
   }
 });
 
-Hooks.once("ready", () => {
+Hooks.once("ready", async () => {
   console.log("Asset Vault | Ready");
+
+  const index = new IndexManager();
+  game.assetVault.index = index;
+  await index.initialize();
+
+  console.log(`Asset Vault | Index status: ${index.status}`);
 });
 
 Hooks.on("getSceneControlButtons", (controls) => {
