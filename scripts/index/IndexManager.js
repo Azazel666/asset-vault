@@ -1,6 +1,7 @@
 import { IndexStore } from "./IndexStore.js";
 import { Scanner } from "./Scanner.js";
 import { createEntry, typeFromPath } from "./IndexEntry.js";
+import { generateTags } from "./AutoTagger.js";
 
 /**
  * Singleton index manager attached to `game.assetVault.index`.
@@ -65,7 +66,7 @@ export class IndexManager {
         createEntry(filePath, {
           type: typeFromPath(filePath),
           source: sourceKey,
-          autoTags: []   // populated by AutoTagger in Iteration 10
+          autoTags: generateTags(filePath, sourceKey)
         })
       );
 

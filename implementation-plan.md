@@ -688,14 +688,27 @@
 
 ### Verification
 
-- [ ] A file at `modules/pf2e/art/tokens/goblin-warrior.webp` gets tags: `art`, `tokens`, `goblin`, `warrior`, `module:pf2e`, `image`
-- [ ] A file at `worlds/myworld/scenes/cave-map.jpg` gets tags: `scenes`, `cave`, `map`, `world:current`, `image`
-- [ ] Audio files get `audio` tag, videos get `video` tag
-- [ ] Noise words (modules, data, systems, etc.) are excluded from path segment tags
-- [ ] Duplicate tags are removed
-- [ ] All tags are lowercase
-- [ ] Haystack array has same length as entries array
-- [ ] Haystack strings contain filename and all tags
+Verify via browser console after a rebuild:
+```javascript
+// Inspect a specific entry's auto-tags
+game.assetVault.index.getEntries().find(e => e.path.includes("goblin"))?.autoTags
+
+// Quick spot-check helper
+game.assetVault.index.getEntries().slice(0, 5).map(e => ({ name: e.name, tags: e.autoTags }))
+
+// Verify haystack length matches entry count
+game.assetVault.index.getHaystack().length === game.assetVault.index.size
+```
+
+- [X] A file at `modules/<id>/art/tokens/goblin-warrior.webp` gets tags including: `art`, `tokens`, `goblin`, `warrior`, `module:<id>`, `image` (no `modules` noise word, no bare module id)
+- [X] A file at `worlds/<worldId>/scenes/cave-map.jpg` gets tags including: `scenes`, `cave`, `map`, `world:current`, `image`
+- [X] Audio files include `audio` tag, video files include `video` tag
+- [X] Noise words (`modules`, `data`, `systems`, `worlds`, `images`, `img`, `src`) absent from tags
+- [X] Module/system/world id is not duplicated as a bare tag (already in `module:id` form)
+- [X] All tags are lowercase
+- [X] No duplicate tags within a single entry
+- [X] `game.assetVault.index.getHaystack().length === game.assetVault.index.size`
+- [X] Haystack strings contain filename and tags (e.g. `"goblin-warrior.webp art tokens goblin warrior module:pf2e image"`)
 
 ---
 
