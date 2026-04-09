@@ -1592,17 +1592,17 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ### Verification
 
-- [ ] Tags: add → search → find → remove → search → not found — full cycle works
-- [ ] Advanced search: `[type:image] [tag:boss] dragon` returns correct filtered fuzzy results
-- [ ] Filter panel and search bar stay in sync bidirectionally
-- [ ] Audio/video playback stops on file change, Hub close, and mode switch
-- [ ] Font Awesome icons display correctly in grid, list, and detail panel
-- [ ] Drag-and-drop inserts images into journals and creates tiles on canvas
-- [ ] Incremental uploads appear in index without full rebuild
-- [ ] Detached window mode preserves all functionality
-- [ ] Right-click context menu works on all item types (files, folders, icons)
-- [ ] No console errors across all Phase 2 features
-- [ ] Performance: search with filters still under 100ms for typical queries
+- [X] Tags: add → search → find → remove → search → not found — full cycle works
+- [X] Advanced search: `[type:image] [tag:boss] dragon` returns correct filtered fuzzy results
+- [X] Filter panel and search bar stay in sync bidirectionally
+- [X] Audio/video playback stops on file change, Hub close, and mode switch
+- [X] Font Awesome icons display correctly in grid, list, and detail panel
+- [X] Drag-and-drop inserts images into journals and creates tiles on canvas
+- [X] Incremental uploads appear in index without full rebuild
+- [X] Detached window mode preserves all functionality
+- [X] Right-click context menu works on all item types (files, folders, icons)
+- [X] No console errors across all Phase 2 features
+- [X] Performance: search with filters still under 100ms for typical queries
 
 ---
 

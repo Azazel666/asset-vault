@@ -17,6 +17,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   #indexStatusHook = null;
   #fileIndexedHook = null;
   #autocomplete = null;
+  #restoreSearchFocus = false;
   #activeMedia = null;
   #popoutWindow = null;
   #isDetaching = false;
@@ -310,6 +311,9 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       if (this.#searchFreeText) {
         searchInput.focus();
         searchInput.setSelectionRange(this.#searchCursorStart, this.#searchCursorEnd);
+      } else if (this.#restoreSearchFocus) {
+        this.#restoreSearchFocus = false;
+        searchInput.focus();
       }
 
       // Show/hide clear button immediately as user types (before debounce)
@@ -348,7 +352,10 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
           }
           this.#searchFreeText = text;
           if (text || this.#searchFilters.length > 0) this.render();
-          else this.navigate(this.#lastBrowsePath, this.#lastBrowseSource);
+          else {
+            this.#restoreSearchFocus = true;
+            this.navigate(this.#lastBrowsePath, this.#lastBrowseSource);
+          }
         }, 150)
       );
     }
@@ -360,6 +367,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         clearBtn.style.display = "none";
         this.#searchFreeText = "";
         this.#searchFilters = [];
+        this.#restoreSearchFocus = true;
         this.navigate(this.#lastBrowsePath, this.#lastBrowseSource);
       });
     }

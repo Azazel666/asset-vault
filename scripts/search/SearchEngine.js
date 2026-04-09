@@ -1,7 +1,18 @@
 import uFuzzy from "../vendor/uFuzzy.esm.js";
 import { parseQuery } from "./QueryParser.js";
 
-const uf = new uFuzzy({ intraMode: 1 });
+// intraSlice [start, end] — [1, Infinity] means first char must match exactly.
+const _intraSlice = [1, Infinity];
+const uf = new uFuzzy({
+  intraMode: 1,
+  // Allow single-char substitution for terms of 3+ chars (uFuzzy default disables
+  // intraSub for terms shorter than 5 chars, which prevents "ece" from matching "eye").
+  intraRules: p => {
+    if (/^\d+$/.test(p) || p.length < 3) return { intraSlice: _intraSlice, intraIns: 0, intraSub: 0, intraTrn: 0, intraDel: 0 };
+    if (p.length <= 4) return { intraSlice: _intraSlice, intraIns: p.length === 4 ? 1 : 0, intraSub: 1, intraTrn: 1, intraDel: 0 };
+    return { intraSlice: _intraSlice, intraIns: 1, intraSub: 1, intraTrn: 1, intraDel: 0 };
+  }
+});
 
 /**
  * Wraps uFuzzy to search the asset index haystack.
