@@ -7,6 +7,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   #sidebarSourceKey = null;
   #sidebarCollapsed = false;
   #searchQuery = "";
+  #searchCursorStart = 0;
+  #searchCursorEnd = 0;
   #lastBrowsePath = "";
   #lastBrowseSource = "data";
   #indexStatusHook = null;
@@ -33,7 +35,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       icon: "fa-solid fa-vault",
       resizable: true
     },
-    position: { width: 960, height: 620 },
+    position: { width: 960, height: 640 },
     actions: {
       pickDirectory: AssetVaultHub.#onPickDirectory,
       backTraverse: AssetVaultHub.#onBackTraverse,
@@ -42,13 +44,24 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       toggleSidebar: AssetVaultHub.#onToggleSidebar,
       selectFile: AssetVaultHub.#onSelectFile,
       confirmSelection: AssetVaultHub.#onConfirmSelection,
-      copyUrl: AssetVaultHub.#onCopyUrl
+      copyUrl: AssetVaultHub.#onCopyUrl,
+      addTag: AssetVaultHub.#onAddTag,
+      removeTag: AssetVaultHub.#onRemoveTag
     }
   };
 
   static PARTS = {
     body: { template: "modules/asset-vault/templates/hub.hbs" }
   };
+
+  static #MIN_WIDTH = 800;
+  static #MIN_HEIGHT = 580;
+
+  setPosition(pos = {}) {
+    if (pos.width !== undefined) pos.width = Math.max(pos.width, AssetVaultHub.#MIN_WIDTH);
+    if (pos.height !== undefined) pos.height = Math.max(pos.height, AssetVaultHub.#MIN_HEIGHT);
+    return super.setPosition(pos);
+  }
 
   get title() {
     if (this.mode !== "picker") return game.i18n.localize("asset-vault.title");
@@ -135,6 +148,18 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     const indexStatus = game.assetVault?.index?.status ?? "none";
     const indexBanner = AssetVaultHub.#indexBanner(indexStatus);
 
+    // Build selectedFile context with tag data from index
+    const showAutoTags = game.settings.get("asset-vault", "showAutoTags");
+    let selectedFileCtx = null;
+    if (this.selectedFile) {
+      const entry = game.assetVault?.index?.getEntry(this.selectedFile.path);
+      selectedFileCtx = {
+        ...this.selectedFile,
+        autoTags: entry?.autoTags ?? [],
+        userTags: entry?.userTags ?? []
+      };
+    }
+
     return {
       mode: this.mode,
       isPicker: this.mode === "picker",
@@ -159,7 +184,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         active: s === this.activeSource
       })),
       sidebarTree: this.#buildSidebarTree(),
-      selectedFile: this.selectedFile,
+      selectedFile: selectedFileCtx,
+      showAutoTags,
       indexStatus,
       indexBanner
     };
@@ -199,11 +225,10 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       searchInput.value = this.#searchQuery;
       if (clearBtn) clearBtn.style.display = this.#searchQuery ? "" : "none";
 
-      // Restore focus after re-render so typing isn't disrupted
+      // Restore focus and cursor position after re-render so typing isn't disrupted
       if (this.#searchQuery) {
         searchInput.focus();
-        const len = searchInput.value.length;
-        searchInput.setSelectionRange(len, len);
+        searchInput.setSelectionRange(this.#searchCursorStart, this.#searchCursorEnd);
       }
 
       // Show/hide clear button immediately as user types (before debounce)
@@ -217,6 +242,9 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
           this.#lastBrowsePath = this.target;
           this.#lastBrowseSource = this.activeSource;
         }
+        // Save cursor position before render so it can be restored
+        this.#searchCursorStart = searchInput.selectionStart ?? 0;
+        this.#searchCursorEnd = searchInput.selectionEnd ?? 0;
         this.#searchQuery = query;
         if (query) {
           this.render();
@@ -236,6 +264,9 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         this.navigate(this.#lastBrowsePath, this.#lastBrowseSource);
       });
     }
+
+    // Wire tag input Enter key
+    this.#wireTagInput();
 
     // Double-click a file to confirm in picker mode (works for both browse and search results)
     this.element.querySelector(".av-content")?.addEventListener("dblclick", ev => {
@@ -355,12 +386,6 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       previewHtml = `<i class="fa-solid ${icon} av-detail-type-icon"></i>`;
     }
 
-    const selectBtn = this.mode === "picker"
-      ? `<button type="button" class="av-confirm-btn" data-action="confirmSelection">
-           <i class="fa-solid fa-check"></i> ${game.i18n.localize("asset-vault.actions.select")}
-         </button>`
-      : "";
-
     panel.innerHTML = `
       <div class="av-detail-preview-area">${previewHtml}</div>
       <div class="av-detail-meta">
@@ -372,10 +397,90 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         <button type="button" class="av-copy-btn" data-action="copyUrl">
           <i class="fa-solid fa-copy"></i> ${game.i18n.localize("asset-vault.actions.copyUrl")}
         </button>
-        ${selectBtn}
       </div>
+      ${this.#buildTagsHtml(f)}
     `;
     panel.removeAttribute("hidden");
+    this.#wireTagInput();
+  }
+
+  #buildTagsHtml(file) {
+    const index = game.assetVault?.index;
+    const entry = index?.getEntry(file.path);
+    const userTags = entry?.userTags ?? [];
+    const autoTags = entry?.autoTags ?? [];
+    const showAutoTags = game.settings.get("asset-vault", "showAutoTags");
+    const esc = s => String(s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+    let autoSection = "";
+    if (showAutoTags) {
+      const chips = autoTags.map(t => `<span class="av-tag av-tag--auto">${esc(t)}</span>`).join("");
+      autoSection = `
+        <div class="av-tags-section">
+          <div class="av-tags-label">${game.i18n.localize("asset-vault.tags.autoTagsLabel")}</div>
+          <div class="av-tags-list">${chips}</div>
+        </div>`;
+    }
+
+    const userChips = userTags.map(t => `
+      <span class="av-tag av-tag--user">
+        ${esc(t)}<button type="button" class="av-tag-remove" data-action="removeTag" data-tag="${esc(t)}">×</button>
+      </span>`).join("");
+
+    const userSection = `
+      <div class="av-tags-section">
+        <div class="av-tags-label">${game.i18n.localize("asset-vault.tags.userTagsLabel")}</div>
+        <div class="av-tags-list">${userChips}</div>
+        <div class="av-tag-input-row">
+          <input type="text" class="av-tag-input" placeholder="${game.i18n.localize("asset-vault.tags.addPlaceholder")}" maxlength="50">
+          <button type="button" class="av-tag-add-btn" data-action="addTag">${game.i18n.localize("asset-vault.tags.add")}</button>
+        </div>
+      </div>`;
+
+    return `<div class="av-detail-tags">${autoSection}${userSection}</div>`;
+  }
+
+  #wireTagInput() {
+    const input = this.element?.querySelector(".av-tag-input");
+    if (!input) return;
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        this.#doAddTag(e.target.value);
+      }
+    });
+  }
+
+  async #doAddTag(rawValue) {
+    if (!this.selectedFile) return;
+    const index = game.assetVault?.index;
+    if (!index) return;
+
+    const tags = rawValue.split(",")
+      .map(t => t.trim().toLowerCase())
+      .filter(t => t.length > 0 && t.length <= 50);
+    if (tags.length === 0) return;
+
+    const entry = index.getEntry(this.selectedFile.path);
+    const existing = entry?.userTags ?? [];
+    const allExisting = [...(entry?.autoTags ?? []), ...existing];
+    const duplicates = tags.filter(t => allExisting.includes(t));
+    const newTags = tags.filter(t => !allExisting.includes(t));
+
+    if (duplicates.length > 0) {
+      ui.notifications.warn(
+        game.i18n.format("asset-vault.notifications.tagDuplicate", { tag: duplicates.join(", ") })
+      );
+    }
+    if (newTags.length === 0) return;
+
+    await index.updateUserTags(this.selectedFile.path, [...existing, ...newTags]);
+    this.#renderDetailPanel();
+
+    const input = this.element?.querySelector(".av-tag-input");
+    if (input) input.value = "";
   }
 
   #doConfirmSelection() {
@@ -447,5 +552,23 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     ui.notifications.info(
       game.i18n.format("asset-vault.notifications.copiedUrl", { path: this.selectedFile.name })
     );
+  }
+
+  static async #onAddTag() {
+    const input = this.element?.querySelector(".av-tag-input");
+    if (!input) return;
+    await this.#doAddTag(input.value);
+  }
+
+  static async #onRemoveTag(event, target) {
+    const tag = target.dataset.tag;
+    if (!tag || !this.selectedFile) return;
+    const index = game.assetVault?.index;
+    if (!index) return;
+    const entry = index.getEntry(this.selectedFile.path);
+    if (!entry) return;
+    const newTags = entry.userTags.filter(t => t !== tag);
+    await index.updateUserTags(this.selectedFile.path, newTags);
+    this.#renderDetailPanel();
   }
 }

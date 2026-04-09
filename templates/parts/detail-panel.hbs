@@ -21,10 +21,31 @@
   <button type="button" class="av-copy-btn" data-action="copyUrl">
     <i class="fa-solid fa-copy"></i> {{localize "asset-vault.actions.copyUrl"}}
   </button>
-  {{#if isPicker}}
-  <button type="button" class="av-confirm-btn" data-action="confirmSelection">
-    <i class="fa-solid fa-check"></i> {{localize "asset-vault.actions.select"}}
-  </button>
+</div>
+<div class="av-detail-tags">
+  {{#if showAutoTags}}
+  <div class="av-tags-section">
+    <div class="av-tags-label">{{localize "asset-vault.tags.autoTagsLabel"}}</div>
+    <div class="av-tags-list">
+      {{#each selectedFile.autoTags}}
+      <span class="av-tag av-tag--auto">{{this}}</span>
+      {{/each}}
+    </div>
+  </div>
   {{/if}}
+  <div class="av-tags-section">
+    <div class="av-tags-label">{{localize "asset-vault.tags.userTagsLabel"}}</div>
+    <div class="av-tags-list">
+      {{#each selectedFile.userTags}}
+      <span class="av-tag av-tag--user">
+        {{this}}<button type="button" class="av-tag-remove" data-action="removeTag" data-tag="{{this}}">×</button>
+      </span>
+      {{/each}}
+    </div>
+    <div class="av-tag-input-row">
+      <input type="text" class="av-tag-input" placeholder="{{localize "asset-vault.tags.addPlaceholder"}}" maxlength="50">
+      <button type="button" class="av-tag-add-btn" data-action="addTag">{{localize "asset-vault.tags.add"}}</button>
+    </div>
+  </div>
 </div>
 {{/if}}

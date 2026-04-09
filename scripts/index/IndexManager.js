@@ -66,11 +66,19 @@ export class IndexManager {
       const found = await scanner.scan(locations);
       console.log(`Asset Vault | Scanner found ${found.length} file(s)`);
 
+      // Preserve user-defined tags across rebuilds
+      const savedUserTags = new Map(
+        this.#store.getEntries()
+          .filter(e => e.userTags.length > 0)
+          .map(e => [e.path, e.userTags])
+      );
+
       const entries = found.map(({ filePath, sourceKey }) =>
         createEntry(filePath, {
           type: typeFromPath(filePath),
           source: sourceKey,
-          autoTags: generateTags(filePath, sourceKey)
+          autoTags: generateTags(filePath, sourceKey),
+          userTags: savedUserTags.get(filePath) ?? []
         })
       );
 
@@ -202,6 +210,21 @@ export class IndexManager {
   }
 
   async save() {
+    await this.#store.save();
+  }
+
+  /**
+   * Update the user tags for a single indexed entry.
+   * Rebuilds the search haystack and persists to disk.
+   * @param {string} path
+   * @param {string[]} userTags
+   * @returns {Promise<void>}
+   */
+  async updateUserTags(path, userTags) {
+    const entry = this.#store.getEntry(path);
+    if (!entry) return;
+    entry.userTags = userTags;
+    this.#search.update(this.#store.getHaystack(), this.#store.getEntries());
     await this.#store.save();
   }
 }

@@ -57,6 +57,12 @@
   "asset-vault.content.typeFile": "File",
   "asset-vault.detail.placeholder": "Select an asset to see details",
 
+  "asset-vault.tags.autoTagsLabel": "Auto Tags",
+  "asset-vault.tags.userTagsLabel": "User Tags",
+  "asset-vault.tags.addPlaceholder": "Add tag…",
+  "asset-vault.tags.add": "Add",
+  "asset-vault.notifications.tagDuplicate": "Tag already exists: {tag}",
+
   "asset-vault.scanLocations.currentWorld": "Current World",
   "asset-vault.scanLocations.systems": "Systems",
   "asset-vault.scanLocations.modules": "Modules",

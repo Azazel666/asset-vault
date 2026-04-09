@@ -46,6 +46,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
   const browse = controls?.tiles?.tools?.browse;
   if (!browse) return;
   browse.title = "asset-vault.title";
+  browse.icon = "fa-solid fa-vault";
   browse.onChange = () => new AssetVaultHub({ mode: "hub" }).render(true);
   delete browse.toolclip;
 });

@@ -1036,17 +1036,17 @@ Note: debounce wiring is part of Iteration 12 (UI integration).
 
 ### Verification
 
-- [ ] Detail panel shows "User Tags" section below auto-tags when a file is selected
-- [ ] Adding a tag via the input field creates a chip in the user tags section
-- [ ] Removing a tag (× on chip) removes it immediately
-- [ ] Tags persist after closing and reopening the Hub
-- [ ] Tags persist after world reload (check `index.json` file)
-- [ ] Searching for a user tag returns the tagged file
-- [ ] Comma-separated input creates multiple tags
-- [ ] Duplicate tags are rejected with notification
-- [ ] Empty input is ignored
-- [ ] Auto-tags are hidden when `showAutoTags` setting is off, user tags still visible
-- [ ] Tag changes on one file do not affect other files' tags
+- [X] Detail panel shows "User Tags" section below auto-tags when a file is selected
+- [X] Adding a tag via the input field creates a chip in the user tags section
+- [X] Removing a tag (× on chip) removes it immediately
+- [X] Tags persist after closing and reopening the Hub
+- [X] Tags persist after world reload (check `index.json` file)
+- [X] Searching for a user tag returns the tagged file
+- [X] Comma-separated input creates multiple tags
+- [X] Duplicate tags are rejected with notification
+- [X] Empty input is ignored
+- [X] Auto-tags are hidden when `showAutoTags` setting is off, user tags still visible
+- [X] Tag changes on one file do not affect other files' tags
 
 ---
 
