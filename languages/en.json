@@ -64,6 +64,8 @@
   "asset-vault.content.typePdf": "PDF",
   "asset-vault.content.typeFile": "File",
   "asset-vault.detail.placeholder": "Select an asset to see details",
+  "asset-vault.detail.duration": "Duration",
+  "asset-vault.detail.dimensions": "Dimensions",
 
   "asset-vault.tags.autoTagsLabel": "Auto Tags",
   "asset-vault.tags.userTagsLabel": "User Tags",

@@ -3,9 +3,9 @@
   {{#if selectedFile.isImage}}
   <img class="av-detail-img" src="{{selectedFile.path}}" alt="{{selectedFile.name}}" />
   {{else if selectedFile.isVideo}}
-  <video class="av-detail-video" src="{{selectedFile.path}}" controls></video>
+  <video class="av-detail-video" src="{{selectedFile.path}}" controls preload="metadata"></video>
   {{else if selectedFile.isAudio}}
-  <audio class="av-detail-audio" src="{{selectedFile.path}}" controls></audio>
+  <audio class="av-detail-audio" src="{{selectedFile.path}}" controls preload="metadata"></audio>
   {{else if selectedFile.isPdf}}
   <i class="fa-solid fa-file-pdf av-detail-type-icon"></i>
   {{else}}
@@ -16,6 +16,8 @@
   <div class="av-detail-filename" title="{{selectedFile.name}}">{{selectedFile.name}}</div>
   <div class="av-detail-path" title="{{selectedFile.path}}">{{selectedFile.path}}</div>
   <div class="av-detail-filetype">{{selectedFile.fileType}}</div>
+  {{#if selectedFile.isAudio}}<div class="av-detail-media-meta"></div>{{/if}}
+  {{#if selectedFile.isVideo}}<div class="av-detail-media-meta"></div>{{/if}}
 </div>
 <div class="av-detail-actions">
   <button type="button" class="av-copy-btn" data-action="copyUrl">

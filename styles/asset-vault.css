@@ -414,6 +414,15 @@
   margin: auto 0.5rem;
 }
 
+.av-detail-media-meta {
+  color: var(--color-text-light-6, #888);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-height: 1em;
+}
+
 .av-detail-type-icon {
   font-size: 4rem;
   color: var(--color-text-light-6, #888);

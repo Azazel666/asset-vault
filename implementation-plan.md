@@ -1210,16 +1210,16 @@ Autocomplete dropdown + inline filter chips were added on top of the core search
 
 ### Verification
 
-- [ ] Selecting an audio file shows an audio player in the detail panel
-- [ ] Audio plays, pauses, seeks correctly
-- [ ] Selecting a video file shows a video player in the detail panel
-- [ ] Video plays inline with controls
-- [ ] Switching to a different file stops the previous playback
-- [ ] Closing the Hub stops any active playback
-- [ ] Duration and file metadata display in the detail panel
-- [ ] Video respects aspect ratio within the panel bounds
-- [ ] No errors with unsupported formats (graceful fallback to type icon)
-- [ ] Media elements are cleaned up properly (no orphaned audio playing after close)
+- [X] Selecting an audio file shows an audio player in the detail panel
+- [X] Audio plays, pauses, seeks correctly
+- [X] Selecting a video file shows a video player in the detail panel
+- [X] Video plays inline with controls
+- [X] Switching to a different file stops the previous playback
+- [X] Closing the Hub stops any active playback
+- [X] Duration and file metadata display in the detail panel
+- [X] Video respects aspect ratio within the panel bounds
+- [X] No errors with unsupported formats (graceful fallback to type icon)
+- [X] Media elements are cleaned up properly (no orphaned audio playing after close)
 
 ---
 

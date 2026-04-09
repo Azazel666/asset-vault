@@ -16,6 +16,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   #lastBrowseSource = "data";
   #indexStatusHook = null;
   #autocomplete = null;
+  #activeMedia = null;
   selectedFile = null;
 
   get #searchQuery() {
@@ -317,6 +318,16 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     // Wire tag input Enter key
     this.#wireTagInput();
 
+    // Re-wire loadedmetadata after a full re-render (e.g. index status hook fires while a file is selected)
+    const renderedMedia = this.element.querySelector(".av-detail-panel audio, .av-detail-panel video");
+    if (renderedMedia && renderedMedia !== this.#activeMedia) {
+      if (this.#activeMedia) this.#activeMedia.pause();
+      this.#activeMedia = renderedMedia;
+      renderedMedia.addEventListener("loadedmetadata", () => this.#updateMediaMeta(renderedMedia), { once: true });
+    } else if (!renderedMedia) {
+      this.#activeMedia = null;
+    }
+
     // Double-click a file to confirm in picker mode (works for both browse and search results)
     this.element.querySelector(".av-content")?.addEventListener("dblclick", ev => {
       if (this.mode !== "picker") return;
@@ -339,6 +350,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       Hooks.off("assetVault.indexStatus", this.#indexStatusHook);
       this.#indexStatusHook = null;
     }
+    this.#stopActiveMedia();
     this.#autocomplete?.destroy();
     this.#autocomplete = null;
     return super.close(options);
@@ -418,6 +430,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   #renderDetailPanel() {
     const panel = this.element.querySelector(".av-detail-panel");
     if (!panel) return;
+    this.#stopActiveMedia();
     const f = this.selectedFile;
     if (!f) { panel.hidden = true; return; }
 
@@ -429,13 +442,17 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     if (f.isImage) {
       previewHtml = `<img class="av-detail-img" src="${esc(f.path)}" alt="${esc(f.name)}" />`;
     } else if (f.isVideo) {
-      previewHtml = `<video class="av-detail-video" src="${esc(f.path)}" controls></video>`;
+      previewHtml = `<video class="av-detail-video" src="${esc(f.path)}" controls preload="metadata"></video>`;
     } else if (f.isAudio) {
-      previewHtml = `<audio class="av-detail-audio" src="${esc(f.path)}" controls></audio>`;
+      previewHtml = `<audio class="av-detail-audio" src="${esc(f.path)}" controls preload="metadata"></audio>`;
     } else {
       const icon = f.isPdf ? "fa-file-pdf" : "fa-file";
       previewHtml = `<i class="fa-solid ${icon} av-detail-type-icon"></i>`;
     }
+
+    const mediaMeta = (f.isAudio || f.isVideo)
+      ? `<div class="av-detail-media-meta"></div>`
+      : "";
 
     panel.innerHTML = `
       <div class="av-detail-preview-area">${previewHtml}</div>
@@ -443,6 +460,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         <div class="av-detail-filename" title="${esc(f.name)}">${esc(f.name)}</div>
         <div class="av-detail-path" title="${esc(f.path)}">${esc(f.path)}</div>
         <div class="av-detail-filetype">${esc(f.fileType)}</div>
+        ${mediaMeta}
       </div>
       <div class="av-detail-actions">
         <button type="button" class="av-copy-btn" data-action="copyUrl">
@@ -453,6 +471,40 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     `;
     panel.removeAttribute("hidden");
     this.#wireTagInput();
+
+    // Wire loadedmetadata for duration / dimensions
+    const mediaEl = panel.querySelector("audio, video");
+    if (mediaEl) {
+      this.#activeMedia = mediaEl;
+      mediaEl.addEventListener("loadedmetadata", () => this.#updateMediaMeta(mediaEl), { once: true });
+    }
+  }
+
+  #stopActiveMedia() {
+    if (!this.#activeMedia) return;
+    this.#activeMedia.pause();
+    this.#activeMedia = null;
+  }
+
+  #updateMediaMeta(el) {
+    const metaEl = this.element?.querySelector(".av-detail-media-meta");
+    if (!metaEl) return;
+    const parts = [];
+    if (isFinite(el.duration) && el.duration > 0) {
+      parts.push(`${game.i18n.localize("asset-vault.detail.duration")}: ${AssetVaultHub.#formatDuration(el.duration)}`);
+    }
+    if (el.tagName === "VIDEO" && el.videoWidth > 0 && el.videoHeight > 0) {
+      parts.push(`${game.i18n.localize("asset-vault.detail.dimensions")}: ${el.videoWidth}\u00d7${el.videoHeight}`);
+    }
+    metaEl.textContent = parts.join("  \u00b7  ");
+  }
+
+  static #formatDuration(s) {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = Math.floor(s % 60);
+    if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+    return `${m}:${String(sec).padStart(2, "0")}`;
   }
 
   #buildTagsHtml(file) {
@@ -547,6 +599,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   /* -------------------------------------------- */
 
   navigate(path, source = this.activeSource) {
+    this.#stopActiveMedia();
     if (source !== this.activeSource) {
       this.#sidebarRootDirs = null;
       this.#sidebarSourceKey = null;
