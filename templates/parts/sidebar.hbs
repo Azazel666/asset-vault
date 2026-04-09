@@ -1,3 +1,68 @@
+{{#if isSearchMode}}
+
+{{!-- Filter panel (search mode) --}}
+{{#if filterFacets}}
+<div class="av-fp-header">
+  <span class="av-fp-title">{{localize "asset-vault.search.filterPanel"}}</span>
+  {{#if filterFacets.hasActiveFilters}}
+  <button type="button" class="av-fp-clear-btn" data-action="clearAllFilters">
+    {{localize "asset-vault.search.clearFilters"}}
+  </button>
+  {{/if}}
+</div>
+
+{{#if filterFacets.types}}
+<div class="av-sidebar-section">
+  <div class="av-sidebar-header">{{localize "asset-vault.search.filterTypes"}}</div>
+  {{#each filterFacets.types}}
+  <button type="button" class="av-fp-type-btn{{#if active}} active{{/if}}"
+    data-action="toggleTypeFilter" data-value="{{key}}">
+    <span class="av-fp-btn-label">{{label}}</span>
+    <span class="av-fp-count">{{count}}</span>
+  </button>
+  {{/each}}
+</div>
+{{/if}}
+
+{{#if filterFacets.sourceGroups}}
+<div class="av-sidebar-section">
+  <div class="av-sidebar-header">{{localize "asset-vault.search.filterSources"}}</div>
+  {{#each filterFacets.sourceGroups}}
+  <details class="av-fp-group" open>
+    <summary class="av-fp-group-label">{{label}}</summary>
+    {{#each items}}
+    <button type="button" class="av-fp-source-btn{{#if active}} active{{/if}}"
+      data-action="toggleSourceFilter" data-value="{{key}}">
+      <span class="av-fp-btn-label">{{label}}</span>
+      <span class="av-fp-count">{{count}}</span>
+    </button>
+    {{/each}}
+  </details>
+  {{/each}}
+</div>
+{{/if}}
+
+{{#if filterFacets.topTags}}
+<div class="av-sidebar-section">
+  <div class="av-sidebar-header">{{localize "asset-vault.search.filterTags"}}</div>
+  <div class="av-fp-tags">
+    {{#each filterFacets.topTags}}
+    <button type="button" class="av-fp-tag{{#if active}} active{{/if}}"
+      data-action="toggleTagFilter" data-value="{{tag}}">
+      {{tag}}<span class="av-fp-tag-count">{{count}}</span>
+    </button>
+    {{/each}}
+  </div>
+</div>
+{{/if}}
+
+{{else}}
+<div class="av-tree-empty">{{localize "asset-vault.search.noFilterData"}}</div>
+{{/if}}
+
+{{else}}
+
+{{!-- Browse mode: sources + folders + favorites --}}
 <div class="av-sidebar-section">
   <div class="av-sidebar-header">{{localize "asset-vault.sidebar.sources"}}</div>
   <div class="av-sources">
@@ -32,3 +97,5 @@
   <div class="av-sidebar-header">{{localize "asset-vault.sidebar.favorites"}}</div>
   <div class="av-favorites-empty">{{localize "asset-vault.sidebar.favoritesEmpty"}}</div>
 </div>
+
+{{/if}}

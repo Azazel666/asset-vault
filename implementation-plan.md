@@ -1157,19 +1157,19 @@ Autocomplete dropdown + inline filter chips were added on top of the core search
 
 ### Verification
 
-- [ ] Switching to search mode replaces folder tree with filter panel in sidebar
-- [ ] Switching back to browse mode restores folder tree
-- [ ] File type checkboxes show counts matching the full index
-- [ ] Checking "Image" filter adds `[type:image]` to search bar and narrows results
-- [ ] Unchecking removes the operator and broadens results
-- [ ] Source section lists active modules, systems, world, assets
-- [ ] Clicking a tag chip adds `[tag:value]` to search bar
-- [ ] "Clear all filters" removes all operators from search bar
+- [X] Switching to search mode replaces folder tree with filter panel in sidebar
+- [X] Switching back to browse mode restores folder tree
+- [X] File type checkboxes show counts matching the full index
+- [X] Checking "Image" filter adds `[type:image]` to search bar and narrows results
+- [X] Unchecking removes the operator and broadens results
+- [X] Source section lists active modules, systems, world, assets
+- [X] Clicking a tag chip adds `[tag:value]` to search bar
+- [X] "Clear all filters" removes all operators from search bar
 - [X] Active filters display as dismissible chips (inline in the search bar, added in Iteration 16 enhancement)
 - [X] Dismissing a chip removes the corresponding operator and re-runs search
-- [ ] Facet counts update dynamically after each search
-- [ ] Zero-count types/sources are greyed out
-- [ ] Combining filter panel clicks with typed free text works correctly
+- [X] Facet counts update dynamically after each search
+- [X] Zero-count types/sources are removed
+- [X] Combining filter panel clicks with typed free text works correctly
 
 ---
 

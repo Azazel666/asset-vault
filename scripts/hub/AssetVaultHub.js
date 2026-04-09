@@ -56,7 +56,11 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       copyUrl: AssetVaultHub.#onCopyUrl,
       addTag: AssetVaultHub.#onAddTag,
       removeTag: AssetVaultHub.#onRemoveTag,
-      removeSearchFilter: AssetVaultHub.#onRemoveSearchFilter
+      removeSearchFilter: AssetVaultHub.#onRemoveSearchFilter,
+      toggleTypeFilter:   AssetVaultHub.#onToggleTypeFilter,
+      toggleSourceFilter: AssetVaultHub.#onToggleSourceFilter,
+      toggleTagFilter:    AssetVaultHub.#onToggleTagFilter,
+      clearAllFilters:    AssetVaultHub.#onClearAllFilters
     }
   };
 
@@ -92,14 +96,17 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     let browseError = null;
     const isSearchMode = this.#searchFilters.length > 0 || this.#searchFreeText.length > 0;
 
+    let filterFacets = null;
     if (isSearchMode) {
       // Search mode: skip FilePicker.browse, return index results
       const index = game.assetVault?.index;
       if (index?.status === "ready") {
         const extensions = this.pickerOptions.extensions ?? null;
-        files = index.search(this.#searchQuery)
-          .filter(entry => !extensions || extensions.some(ext => entry.path.toLowerCase().endsWith(ext)))
-          .map(entry => {
+        const rawEntries = index.search(this.#searchQuery);
+        const filteredEntries = extensions
+          ? rawEntries.filter(e => extensions.some(ext => e.path.toLowerCase().endsWith(ext)))
+          : rawEntries;
+        files = filteredEntries.map(entry => {
             const isImage = entry.type === "image";
             const isVideo = entry.type === "video";
             const isAudio = entry.type === "audio";
@@ -112,6 +119,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
               isSelected: this.selectedFile?.path === entry.path
             };
           });
+        filterFacets = this.#computeSearchFacets(filteredEntries);
       }
     } else {
       // Browse mode: load directory listing (cached per navigation)
@@ -179,6 +187,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       isSearchMode,
       searchQuery: this.#searchFreeText,
       searchFilters: this.#searchFilters,
+      filterFacets,
       searchResultCount: isSearchMode ? files.length : 0,
       searchResultText: isSearchMode
         ? game.i18n.format("asset-vault.search.resultCount", { count: files.length, query: this.#searchQuery })
@@ -226,7 +235,6 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     const sidebar = this.element.querySelector(".av-sidebar");
     if (sidebar) {
       sidebar.classList.toggle("av-collapsed", this.#sidebarCollapsed);
-      sidebar.classList.toggle("av-search-hidden", this.#searchFilters.length > 0 || this.#searchFreeText.length > 0);
     }
 
     // Wire search input + autocomplete
@@ -625,5 +633,106 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     } else {
       this.render();
     }
+  }
+
+  static #onToggleTypeFilter(event, target) {
+    this.#toggleFilter("type", target.dataset.value);
+  }
+
+  static #onToggleSourceFilter(event, target) {
+    this.#toggleFilter("source", target.dataset.value);
+  }
+
+  static #onToggleTagFilter(event, target) {
+    this.#toggleFilter("tag", target.dataset.value);
+  }
+
+  static #onClearAllFilters() {
+    this.#searchFilters = [];
+    if (!this.#searchFreeText) this.navigate(this.#lastBrowsePath, this.#lastBrowseSource);
+    else this.render();
+  }
+
+  #toggleFilter(key, value) {
+    const exists = this.#searchFilters.some(f => f.key === key && f.value === value);
+    if (exists) {
+      this.#searchFilters = this.#searchFilters.filter(f => !(f.key === key && f.value === value));
+    } else {
+      const wasSearching = this.#searchFreeText.length > 0 || this.#searchFilters.length > 0;
+      if (!wasSearching) {
+        this.#lastBrowsePath   = this.target;
+        this.#lastBrowseSource = this.activeSource;
+      }
+      this.#searchFilters = [...this.#searchFilters, { key, value }];
+    }
+    if (this.#searchFilters.length === 0 && !this.#searchFreeText) {
+      this.navigate(this.#lastBrowsePath, this.#lastBrowseSource);
+    } else {
+      this.render();
+    }
+  }
+
+  #computeSearchFacets(entries) {
+    const typeCounts = new Map([["image", 0], ["video", 0], ["audio", 0], ["pdf", 0]]);
+    const sourceMap  = new Map();
+    const tagMap     = new Map();
+
+    for (const e of entries) {
+      if (typeCounts.has(e.type)) typeCounts.set(e.type, typeCounts.get(e.type) + 1);
+      sourceMap.set(e.source, (sourceMap.get(e.source) ?? 0) + 1);
+      for (const tag of [...(e.autoTags ?? []), ...(e.userTags ?? [])]) {
+        tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1);
+      }
+    }
+
+    const af = this.#searchFilters;
+
+    const TYPE_LABEL_KEYS = {
+      image: "asset-vault.content.typeImage",
+      video: "asset-vault.content.typeVideo",
+      audio: "asset-vault.content.typeAudio",
+      pdf:   "asset-vault.content.typePdf"
+    };
+    const types = ["image", "video", "audio", "pdf"]
+      .filter(t => typeCounts.get(t) > 0)
+      .map(t => ({
+        key:    t,
+        label:  game.i18n.localize(TYPE_LABEL_KEYS[t]),
+        count:  typeCounts.get(t),
+        active: af.some(f => f.key === "type" && f.value === t)
+      }));
+
+    const worldItems = [], moduleItems = [], systemItems = [], assetItems = [], otherItems = [];
+    for (const [src, count] of [...sourceMap.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+      const item = { key: src, count, active: af.some(f => f.key === "source" && f.value === src) };
+      if (src === "world:current") {
+        worldItems.push({ ...item, label: game.i18n.localize("asset-vault.scanLocations.currentWorld") });
+      } else if (src.startsWith("module:")) {
+        moduleItems.push({ ...item, label: src.slice("module:".length) });
+      } else if (src.startsWith("system:")) {
+        systemItems.push({ ...item, label: src.slice("system:".length) });
+      } else if (src === "assets") {
+        assetItems.push({ ...item, label: game.i18n.localize("asset-vault.scanLocations.globalAssets") });
+      } else {
+        otherItems.push({ ...item, label: src });
+      }
+    }
+
+    const sourceGroups = [];
+    if (worldItems.length)  sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.currentWorld"), items: worldItems });
+    if (moduleItems.length) sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.modules"),      items: moduleItems });
+    if (systemItems.length) sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.systems"),      items: systemItems });
+    if (assetItems.length)  sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.globalAssets"), items: assetItems });
+    if (otherItems.length)  sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.otherFolders"), items: otherItems });
+
+    const topTags = [...tagMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+      .map(([tag, count]) => ({
+        tag, count,
+        active: af.some(f => f.key === "tag" && f.value === tag)
+      }));
+
+    return { types, sourceGroups, topTags, hasActiveFilters: af.length > 0 };
   }
 }
