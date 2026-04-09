@@ -2,6 +2,12 @@
   <div class="av-toolbar">
     {{> "modules/asset-vault/templates/parts/toolbar.hbs"}}
   </div>
+  {{#if indexBanner}}
+  <div class="av-index-banner av-index-banner--{{indexStatus}}">
+    <i class="fa-solid {{indexBanner.icon}}"></i>
+    {{indexBanner.message}}
+  </div>
+  {{/if}}
   <div class="av-body">
     <aside class="av-sidebar">
       {{> "modules/asset-vault/templates/parts/sidebar.hbs"}}

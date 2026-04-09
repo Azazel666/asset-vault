@@ -3,6 +3,7 @@
     title="{{localize 'asset-vault.nav.toggleSidebar'}}">
     <i class="fa-solid fa-bars"></i>
   </button>
+  {{#unless isSearchMode}}
   <button type="button" class="av-back-btn" data-action="backTraverse"
     title="{{localize 'asset-vault.nav.back'}}">
     <i class="fa-solid fa-arrow-left"></i>
@@ -17,12 +18,18 @@
     {{/if}}
     {{/each}}
   </nav>
+  {{else}}
+  <span class="av-search-result-count">{{searchResultText}}</span>
+  {{/unless}}
 </div>
 <div class="av-toolbar-row av-search-row">
   <div class="av-search">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="search" class="av-search-input"
       placeholder="{{localize 'asset-vault.search.placeholder'}}" />
+    <button type="button" class="av-search-clear" title="{{localize 'asset-vault.search.clear'}}">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
   </div>
   <div class="av-view-controls">
     <button type="button" class="av-view-btn{{#if isGrid}} active{{/if}}"

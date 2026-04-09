@@ -51,6 +51,7 @@ export class IndexManager {
   async rebuild() {
     this.status = "building";
     this.progress = 0;
+    Hooks.callAll("assetVault.indexStatus", "building");
 
     try {
       const locations = this.#resolveLocations();
@@ -81,9 +82,11 @@ export class IndexManager {
       this.status = "ready";
       this.progress = 100;
       console.log(`Asset Vault | Rebuild complete: ${entries.length} entries indexed`);
+      Hooks.callAll("assetVault.indexStatus", "ready");
     } catch(err) {
       console.error("Asset Vault | IndexManager.rebuild failed:", err);
       this.status = "error";
+      Hooks.callAll("assetVault.indexStatus", "error");
     }
   }
 

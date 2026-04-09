@@ -125,6 +125,30 @@
   color: #191813;
 }
 
+.av-search-clear {
+  background: transparent;
+  border: none;
+  padding: 0 0.1rem;
+  cursor: pointer;
+  color: var(--color-text-light-6, #888);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.av-search-clear:hover {
+  color: var(--color-text-primary, #191813);
+}
+
+.av-search-result-count {
+  font-size: 0.82rem;
+  color: var(--color-text-light-6, #888);
+  font-style: italic;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .av-view-controls {
   display: flex;
   gap: 0.25rem;
@@ -148,6 +172,31 @@
 .av-view-btn.active {
   background: var(--color-active-bg, #c9b88a);
   border-color: var(--color-border-medium, #9f9275);
+}
+
+/* ---------------------------------------- */
+/*  Index status banner                     */
+/* ---------------------------------------- */
+
+.av-index-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border-light, #c9c7b8);
+}
+
+.av-index-banner--none,
+.av-index-banner--building {
+  background: rgba(200, 170, 80, 0.15);
+  color: var(--color-level-warning, #b8860b);
+}
+
+.av-index-banner--error {
+  background: rgba(200, 60, 40, 0.12);
+  color: var(--color-level-error, #c53);
 }
 
 /* ---------------------------------------- */
@@ -177,7 +226,8 @@
   transition: width 0.2s ease, padding 0.2s ease, border 0.2s ease;
 }
 
-.av-sidebar.av-collapsed {
+.av-sidebar.av-collapsed,
+.av-sidebar.av-search-hidden {
   width: 0;
   padding: 0;
   border-right: none;

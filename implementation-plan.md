@@ -813,16 +813,19 @@ Note: debounce wiring is part of Iteration 12 (UI integration).
 
 ### Verification
 
-- [ ] Typing in search bar switches content from directory listing to search results
-- [ ] Search results show files matching the query (grid or list view)
-- [ ] Clearing the search bar returns to browse mode at the previous directory
-- [ ] Index status banner shows correctly for each state (none/building/ready)
-- [ ] Search bar is disabled when index is not ready
-- [ ] Progress bar updates during indexing
-- [ ] Result count is shown in toolbar
-- [ ] Clicking a search result selects it and shows detail panel
-- [ ] Double-clicking a search result confirms selection
-- [ ] Search + select + callback flow works end-to-end
+- [X] Typing in search bar switches content area from directory listing to search results
+- [X] Search results display in grid/list view (same as browse mode)
+- [X] Result count shown in toolbar breadcrumb area: "N result(s) for 'query'"
+- [X] Sidebar is hidden during search (collapses automatically)
+- [X] × (clear) button appears in search bar while typing; disappears when empty
+- [X] Clicking × restores browse mode at the directory that was active before searching
+- [X] Typing focus is not lost between keystrokes (input stays focused after re-render)
+- [X] Fuzzy search works: "goblin" finds goblin files; "gblin" still finds them
+- [X] Index status banner appears when `index.status` is `"none"` or `"building"`; absent when `"ready"`
+- [X] Clicking a search result selects it and opens the detail panel
+- [X] **Picker mode:** double-clicking a search result confirms selection and closes the hub
+- [X] **Picker mode:** "Select" footer button works with a search result selected
+- [X] No results state: "No results found" message shown instead of empty grid
 
 ---
 

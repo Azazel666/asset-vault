@@ -27,6 +27,13 @@
   "asset-vault.notifications.copiedUrl": "Copied: {path}",
 
   "asset-vault.search.placeholder": "Search assets…",
+  "asset-vault.search.clear": "Clear search",
+  "asset-vault.search.resultCount": "{count} result(s) for \"{query}\"",
+  "asset-vault.search.noResults": "No results found",
+
+  "asset-vault.index.statusNone": "Index not built — search unavailable. Open module settings to configure scan locations.",
+  "asset-vault.index.statusBuilding": "Indexing assets in the background…",
+  "asset-vault.index.statusError": "Index build failed. Check the console for details.",
 
   "asset-vault.nav.back": "Go up one level",
   "asset-vault.nav.toggleSidebar": "Toggle sidebar",
