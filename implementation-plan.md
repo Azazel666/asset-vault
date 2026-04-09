@@ -1606,18 +1606,503 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ---
 
-## Post-Phase 2 — What Comes Next
-
-Once all Phase 2 iterations pass verification, the module is a full-featured media hub.
-
-**Phase 3 priorities:**
-1. Player access with restricted mode
-2. Cross-world scanning
-3. Virtual scrolling for large result sets (10,000+ files)
-4. Extensibility API (custom search providers, tag API for other modules)
-5. Localization support
+## Phase 3 — File Management, Favorites & Polish
 
 ---
 
-*Plan version: 2.0*
+## Iteration 25 — Move File/Folder
+
+**Goal:** GMs can move files and folders to different locations within the Data directory via the Hub's browse mode. Moves update the index automatically.
+
+### Tasks
+
+1. Add "Move" action to the right-click context menu (files and folders):
+   - Menu item: `fa-solid fa-arrows-up-down-left-right` "Move to..."
+   - Only available for files/folders in the `data` source (not `public`, `s3`, or module/system paths — those are read-only)
+   - GM-only action
+
+2. Implement move destination picker:
+   - On "Move to..." click, open a lightweight folder picker dialog (DialogV2 or small ApplicationV2):
+     - Reuse the sidebar folder tree component from the Hub
+     - Shows only directories (no files)
+     - User navigates to the target folder and clicks "Move Here"
+     - Cancel button to abort
+   - The dialog shows the current location and the selected destination
+
+3. Implement server-side move:
+   - Foundry does not have a native file move API
+   - Strategy: **copy + delete via socket/server request**
+     - Check if `foundry.utils` or the server API exposes a move/rename endpoint
+     - If not available: use `FilePicker.upload()` to copy the file to the new location, then attempt deletion of the original (see Iteration 26 for delete mechanism)
+     - For folders: recursively move contents, then remove empty source folder
+   - **Alternative:** Check if Foundry v13 exposes a `FilePicker.move()` or file management socket event. If found, use it directly.
+   - > **⚠ Research needed:** Before implementing, check Foundry v13 source for any file move/rename API. Console commands to try:
+     > ```javascript
+     > // Check for move-related socket events
+     > game.socket.events
+     > // Check FilePicker static methods
+     > Object.getOwnPropertyNames(foundry.applications.apps.FilePicker)
+     > ```
+
+4. Update index after move:
+   - Remove the old path entry from the index
+   - Add the new path entry (re-run auto-tagger since path-based tags change)
+   - If a folder was moved, update all entries whose paths start with the old folder path
+   - Rebuild affected haystack entries
+   - Save index (debounced)
+
+5. Update UI after move:
+   - If the Hub is viewing the source directory, re-browse to reflect the file is gone
+   - If viewing the destination directory, re-browse to show the new file
+   - Show notification: "Moved [filename] to [destination]"
+
+6. Error handling:
+   - Target already exists: show error notification, abort move
+   - Permission denied: show error notification
+   - Move to same location: no-op, no error
+
+### Verification
+
+- [ ] Right-click a file → "Move to..." appears in context menu
+- [ ] Move dialog opens showing folder tree
+- [ ] Navigating to a destination folder and clicking "Move Here" moves the file
+- [ ] File disappears from source directory in browse view
+- [ ] File appears in destination directory in browse view
+- [ ] Index is updated: searching for the file returns the new path
+- [ ] Auto-tags are regenerated (path-based tags reflect new location)
+- [ ] Moving a folder moves all its contents recursively
+- [ ] "Move to..." is NOT available for files in module/system directories (read-only)
+- [ ] Moving to the same directory is a no-op
+- [ ] Error shown if destination already has a file with the same name
+- [ ] Notification confirms successful move
+
+---
+
+## Iteration 26 — Delete File/Folder
+
+**Goal:** GMs can delete files and folders from the Hub with a confirmation dialog. Deletes update the index automatically.
+
+### Tasks
+
+1. Add "Delete" action to the right-click context menu:
+   - Menu item: `fa-solid fa-trash` "Delete" (red text for visual warning)
+   - Only available for files/folders in the `data` source (not module/system paths)
+   - GM-only action
+
+2. Implement confirmation dialog:
+   - Use `DialogV2.confirm()` or a custom DialogV2:
+     - Title: "Delete [filename]?"
+     - Content: "Are you sure you want to delete **[filename]**? This action cannot be undone."
+     - For folders: "Are you sure you want to delete the folder **[foldername]** and all its contents? This action cannot be undone."
+     - Show file preview thumbnail in the dialog for visual confirmation
+     - Buttons: "Delete" (danger-styled) and "Cancel"
+   - Never delete without confirmation — no exceptions
+
+3. Implement server-side delete:
+   - Check for Foundry v13's file deletion API:
+     - Look for a socket event or server-side endpoint for file deletion
+     - `FilePicker` does not expose a `delete()` method in the public API
+   - > **⚠ Research needed:** Check Foundry v13 source:
+     > ```javascript
+     > // Check for delete-related socket events
+     > game.socket.events
+     > // Check if there's a server route
+     > // Look at Foundry's own "delete file" behavior (if any exists in core UI)
+     > ```
+   - If no API exists: this feature may need a companion server-side module or may be limited to what the Foundry server allows. Document the limitation.
+   - For folders: recursively delete contents first, then the empty folder
+
+4. Update index after delete:
+   - Remove the deleted file's entry from the index
+   - If a folder was deleted, remove all entries whose paths start with that folder path
+   - Remove from haystack
+   - Save index (debounced)
+
+5. Update UI after delete:
+   - Re-browse current directory to reflect the deletion
+   - If the deleted file was selected in the detail panel, clear the detail panel
+   - Show notification: "Deleted [filename]"
+
+6. Safety guardrails:
+   - Never allow deletion of system-critical directories (`worlds/`, `modules/`, `systems/`, `assets/` root)
+   - Never allow deletion of the world's own root folder
+   - Only allow deletion within the `data` source
+   - Block deletion of files outside the world directory if a setting is enabled (future: configurable scope)
+
+### Verification
+
+- [ ] Right-click a file → "Delete" appears in context menu (red text)
+- [ ] Clicking "Delete" opens a confirmation dialog with filename and preview
+- [ ] Clicking "Cancel" aborts — file remains
+- [ ] Clicking "Delete" in the dialog removes the file from disk
+- [ ] File disappears from browse view after deletion
+- [ ] File is removed from the index — search no longer returns it
+- [ ] Deleting a folder shows folder-specific confirmation text
+- [ ] Deleting a folder removes all its contents and the folder itself
+- [ ] "Delete" is NOT available for files in module/system directories
+- [ ] Cannot delete root-level directories (worlds/, modules/, systems/, assets/)
+- [ ] Detail panel clears if the selected file was deleted
+- [ ] Notification confirms successful deletion
+- [ ] If server-side deletion is not possible, a clear error message is shown explaining the limitation
+
+---
+
+## Iteration 27 — Favorites
+
+**Goal:** Users can bookmark folder paths for quick navigation. Favorites are per-user, so each GM or Assistant GM has their own set.
+
+### Tasks
+
+1. Register favorites storage:
+   - Store favorites as a user flag: `game.user.setFlag("asset-vault", "favorites", [...])`
+   - Schema: array of `{ path: "worlds/myworld/scenes", source: "data", label: "My Scenes" }`
+   - Per-user by design (flags are per-user document)
+
+2. Add "Add to Favorites" action:
+   - Right-click context menu on folders: `fa-solid fa-star` "Add to Favorites"
+   - Also available as a star icon button in the breadcrumb bar when viewing a directory
+   - Clicking adds the current folder path to the user's favorites
+   - If already favorited, show "Remove from Favorites" (filled star → outline star toggle)
+
+3. Implement favorites section in sidebar:
+   - Add a "Favorites" section at the top of the sidebar (above the folder tree)
+   - List each favorite as a clickable item: star icon + label (default: folder name)
+   - Clicking a favorite navigates to that folder path in browse mode
+   - Right-click on a favorite:
+     - "Rename" — edit the display label (DialogV2 with text input)
+     - "Remove" — remove from favorites (no confirmation needed)
+   - Drag to reorder favorites within the list (optional — can defer)
+   - Empty state: "No favorites yet. Right-click a folder to add one."
+
+4. Favorite label editing:
+   - Default label is the folder's basename (e.g., `scenes` from `worlds/myworld/scenes`)
+   - User can rename to a custom label (e.g., "Battle Maps")
+   - Label stored in the favorites array alongside the path
+
+5. Favorites in search mode:
+   - Favorites section remains visible at the top of the sidebar even in search mode
+   - Clicking a favorite while in search mode: clears the search and navigates to the folder
+
+6. Sync and persistence:
+   - Changes save immediately via `game.user.setFlag()`
+   - Favorites are per-user and sync across devices (user flags are stored in the world DB)
+   - Multiple GMs/Assistant GMs each see only their own favorites
+
+### Verification
+
+- [ ] Right-click a folder → "Add to Favorites" appears in context menu
+- [ ] Clicking "Add to Favorites" adds the folder to the sidebar favorites section
+- [ ] Favorites section appears at the top of the sidebar with the added folder
+- [ ] Clicking a favorite navigates to that folder
+- [ ] Star icon in breadcrumb bar toggles between filled (favorited) and outline (not favorited)
+- [ ] Right-click a favorite → "Rename" opens a label editor dialog
+- [ ] Renamed label displays correctly in the sidebar
+- [ ] Right-click a favorite → "Remove" removes it from the list
+- [ ] Favorites persist after closing and reopening the Hub
+- [ ] Favorites persist after world reload
+- [ ] Different users (test with two GM accounts if possible) have independent favorite lists
+- [ ] Clicking a favorite while in search mode clears search and navigates
+- [ ] Empty favorites section shows helpful placeholder text
+- [ ] No errors when a favorited folder no longer exists (show as greyed out or auto-remove)
+
+---
+
+## Iteration 28 — Virtual Scrolling
+
+**Goal:** Content area uses virtual scrolling to efficiently render large file sets (10,000+ files) without DOM overload.
+
+### Tasks
+
+1. Implement virtual scroll for grid view:
+   - Only render items visible in the viewport + a small buffer (1–2 rows above/below)
+   - Calculate: items per row based on container width and item min-width, total rows based on item count, visible rows based on scroll position and container height
+   - Use a scroll container with a spacer element to maintain correct scrollbar height
+   - On scroll: recalculate which items should be rendered, update DOM
+
+2. Implement virtual scroll for list view:
+   - Fixed row height (40–50px) makes calculation simpler
+   - Same spacer/viewport approach
+   - Render only visible rows + buffer
+
+3. Implementation approach:
+   - Build a lightweight `VirtualScroller` utility class:
+     ```javascript
+     class VirtualScroller {
+       constructor({ container, itemHeight, itemsPerRow, totalItems, renderItem })
+       onScroll()      // recalculate visible range
+       refresh()       // full recalculation (e.g., after resize or data change)
+       scrollToIndex() // programmatic scroll (e.g., "show in folder")
+     }
+     ```
+   - Integrate into `AssetVaultHub`'s content rendering
+   - Replace the current "render all items" approach with the virtual scroller
+
+4. Handle edge cases:
+   - Window resize: recalculate items per row and re-render
+   - View mode toggle (grid ↔ list): reinitialize scroller with new dimensions
+   - Search results update: reset scroll position to top, recalculate
+   - Empty state: no scroller needed, show message directly
+   - File selection: ensure selected item is visible (scroll into view if needed)
+
+5. Performance targets:
+   - Initial render: < 50ms for any dataset size
+   - Scroll: 60fps (no jank during fast scrolling)
+   - DOM node count: never exceed ~200 items regardless of dataset size
+
+### Verification
+
+- [ ] Browse a directory with 500+ files — renders instantly, no lag
+- [ ] Scrolling through 1000+ files is smooth (60fps, no jank)
+- [ ] DOM inspector shows only ~100-200 file item elements regardless of total count
+- [ ] Grid view: items per row adjusts correctly on window resize
+- [ ] List view: rows render at consistent height, no visual gaps
+- [ ] Switching between grid and list view works correctly with virtual scroll
+- [ ] Search results with many matches render and scroll smoothly
+- [ ] "Show in Folder" (from context menu) scrolls to and highlights the target file
+- [ ] Selecting a file near the bottom of a large set shows the detail panel correctly
+- [ ] Empty directories still show the empty state message
+- [ ] No visual artifacts when scrolling quickly (no blank rows or flickering)
+
+---
+
+## Iteration 29 — Cross-World Scanning
+
+**Goal:** GMs can opt-in to index files from other worlds. Each world's index remains independent — this just adds other worlds' files to the current index.
+
+### Tasks
+
+1. Enable cross-world scanning in the Scanner:
+   - When other worlds are enabled in scan locations, the Scanner already receives their paths (e.g., `worlds/other-campaign`)
+   - Verify this works end-to-end: enable another world in Scan Locations → rebuild → files from that world appear in search
+
+2. Auto-tag cross-world entries:
+   - Source tag: `world:<worldId>` (not `world:current`)
+   - Ensure the world name is human-readable in tags or filter panel
+
+3. Add `[source:world:<id>]` filter support:
+   - Works with advanced search syntax from Iteration 16
+   - Filter panel shows enabled worlds in the source section
+
+4. Handle edge cases:
+   - Other world's folder structure may differ from current world
+   - Files may overlap (same asset used in multiple worlds) — index both, deduplicate by path
+   - If an enabled world is deleted between sessions, skip gracefully during scan (log warning, don't crash)
+
+5. UI indication:
+   - In browse and search results, files from other worlds show a subtle badge or indicator (e.g., small world icon + world name)
+   - Filter panel source section lists enabled other worlds
+
+### Verification
+
+- [ ] Enable another world in Scan Locations → rebuild → files from that world appear in index
+- [ ] Searching for a file that exists only in the other world returns results
+- [ ] `[source:world:other-campaign]` filter returns only files from that world
+- [ ] Auto-tags include `world:<otherId>` for cross-world files
+- [ ] Disabling the other world in Scan Locations → rebuild → those files removed from index
+- [ ] If the other world's folder is deleted, scan skips it with a warning (no crash)
+- [ ] Files from other worlds show a visual indicator in browse/search results
+- [ ] Current world files still tagged `world:current` (not the world ID)
+
+---
+
+## Iteration 30 — Localization
+
+**Goal:** All user-facing strings use i18n keys. Non-English translations can be contributed via language files.
+
+### Tasks
+
+1. Audit all hardcoded strings:
+   - Templates: scan all `.hbs` files for text not wrapped in `{{localize}}`
+   - JavaScript: scan all `.js` files for `ui.notifications`, dialog text, labels, tooltips, error messages
+   - Context menus: all menu item labels
+
+2. Add missing i18n keys to `languages/en.json`:
+   - Organize by section:
+     ```json
+     {
+       "asset-vault.title": "Asset Vault",
+       "asset-vault.actions.select": "Select",
+       "asset-vault.actions.copyUrl": "Copy URL",
+       "asset-vault.actions.copyClass": "Copy Class",
+       "asset-vault.actions.moveTo": "Move to...",
+       "asset-vault.actions.delete": "Delete",
+       "asset-vault.actions.addTag": "Add Tag",
+       "asset-vault.actions.addFavorite": "Add to Favorites",
+       "asset-vault.actions.removeFavorite": "Remove from Favorites",
+       "asset-vault.browse.emptyDir": "This folder is empty",
+       "asset-vault.browse.noResults": "No results found",
+       "asset-vault.search.placeholder": "Search files...",
+       "asset-vault.search.resultsCount": "{count} result(s) for '{query}'",
+       "asset-vault.search.syntaxHint": "Operators: [type:image] [tag:npc] [source:module:pf2e] [ext:webp]",
+       "asset-vault.index.building": "Indexing... ({progress}%)",
+       "asset-vault.index.notBuilt": "Index not built. Search unavailable.",
+       "asset-vault.favorites.empty": "No favorites yet. Right-click a folder to add one.",
+       "asset-vault.delete.confirmFile": "Are you sure you want to delete {name}? This cannot be undone.",
+       "asset-vault.delete.confirmFolder": "Are you sure you want to delete the folder {name} and all its contents? This cannot be undone.",
+       "asset-vault.move.title": "Move to...",
+       "asset-vault.move.confirm": "Move Here",
+       "asset-vault.settings.*": "..."
+     }
+     ```
+
+3. Replace all hardcoded strings with `game.i18n.localize()` or `game.i18n.format()` calls:
+   - Templates: `{{localize "asset-vault.key"}}`
+   - JavaScript: `game.i18n.localize("asset-vault.key")` or `game.i18n.format("asset-vault.key", { name: filename })`
+
+4. Support parameterized strings:
+   - Use `game.i18n.format()` for strings with variables (result counts, filenames in dialogs, etc.)
+
+5. Verify completeness:
+   - Search codebase for any remaining bare English strings
+   - Test with a dummy language file that prefixes all strings with `[XX]` to spot missed strings
+
+### Verification
+
+- [ ] Every visible string in the Hub UI comes from `en.json` (no hardcoded text)
+- [ ] Every notification message uses i18n
+- [ ] Every context menu label uses i18n
+- [ ] Every dialog (delete confirmation, move picker, tag input, rename favorite) uses i18n
+- [ ] Settings panel labels and hints use i18n
+- [ ] Parameterized strings (result counts, filenames) format correctly
+- [ ] Creating a test language file with `[XX]` prefixes shows no un-prefixed strings in the UI
+- [ ] No errors when switching to a language that has partial translations (missing keys fall back to English)
+
+---
+
+## Iteration 31 — Player Access
+
+**Goal:** Players can use Asset Vault in a restricted mode when Foundry's permission system grants them access to modify document fields (e.g., character portrait). GMs configure what players can see.
+
+### Tasks
+
+1. Implement permission checks:
+   - On Hub/picker open, check `game.user.isGM`
+   - If not GM: enter restricted mode
+   - Restricted mode disables:
+     - Tag editing (add/remove user tags)
+     - File move and delete
+     - Scan location settings access
+     - Context menu actions: only "Copy URL" and "Select" (picker mode)
+
+2. Implement location restrictions:
+   - New world setting: `playerVisibleLocations` (array of paths)
+   - GM configures which folders/sources players can browse and search
+   - In restricted mode:
+     - Browse: only show folders listed in `playerVisibleLocations`
+     - Search: only return results from allowed locations
+     - Sidebar: only show allowed folder tree entries
+
+3. Settings UI for player locations:
+   - Add to the Scan Locations config dialog or a separate "Player Access" section
+   - List all indexed locations with checkboxes for "Visible to Players"
+   - Default: empty (players see nothing until GM configures)
+
+4. Enable/disable player access:
+   - World setting: `enableForPlayers` (already registered in Iteration 2)
+   - When `false`: players get the default Foundry FilePicker (no Asset Vault at all)
+   - When `true`: players get Asset Vault in restricted mode
+   - Hub scene UI button: hidden for players (or visible but restricted — GM choice)
+
+5. Handle picker mode for players:
+   - When a player opens a file picker (e.g., change character portrait) and `enableForPlayers` is true:
+     - Asset Vault opens in picker mode + restricted mode
+     - File type filter still applied from calling context
+     - Location restriction layered on top
+   - When `enableForPlayers` is false:
+     - Default Foundry FilePicker opens for players
+     - Asset Vault picker only activates for GMs
+
+### Verification
+
+- [ ] With `enableForPlayers` off: player gets default Foundry FilePicker
+- [ ] With `enableForPlayers` on: player gets Asset Vault in restricted mode
+- [ ] Player cannot see "Add Tag", "Delete", "Move to..." in context menu
+- [ ] Player can only browse folders listed in `playerVisibleLocations`
+- [ ] Player search results only include files from allowed locations
+- [ ] Player can select a file in picker mode (e.g., change character portrait)
+- [ ] Player cannot access Scan Locations settings
+- [ ] GM still has full access to all features
+- [ ] Hub scene UI button behavior for players is configurable
+- [ ] Empty `playerVisibleLocations`: player sees "No accessible locations" message
+- [ ] No errors when player opens the Hub or picker
+
+---
+
+## Iteration 32 — Phase 3 Integration Testing & Polish
+
+**Goal:** End-to-end verification of all Phase 3 features. Ensure file operations are safe and all features work together.
+
+### Tasks
+
+1. **File management testing:**
+   - Move a file → verify source empty, destination has file, index updated, tags regenerated
+   - Move a folder with subfolders → verify recursive move, all index entries updated
+   - Delete a file → verify gone from disk, index, and search
+   - Delete a folder → verify all contents removed
+   - Attempt move/delete on module files → verify blocked (read-only)
+   - Attempt delete on root directories → verify blocked
+
+2. **Favorites testing:**
+   - Add favorites → navigate via sidebar → verify correct folder
+   - Rename favorite → verify label persists
+   - Remove favorite → verify gone from sidebar
+   - Test with two different GM users → verify independent favorites
+   - Favorite a folder, then delete that folder → verify favorite handles gracefully (greyed out or auto-removed)
+
+3. **Virtual scrolling testing:**
+   - Navigate to a directory with 1000+ files → verify smooth rendering
+   - Search with 5000+ results → verify smooth scrolling
+   - Switch grid/list → verify scroller reinitializes correctly
+   - Resize window while viewing large set → verify recalculation
+
+4. **Player access testing:**
+   - Log in as player → verify restricted mode
+   - Configure player visible locations → verify player can only see those
+   - Player selects a file via picker → verify it applies
+   - Player attempts to access restricted features → verify blocked
+
+5. **Cross-feature interactions:**
+   - Move a favorited file → favorite path no longer valid → verify handled
+   - Delete a file that's in search results → verify results update
+   - Virtual scroll + drag-and-drop → verify drag works from any scroll position
+   - Player mode + favorites → verify favorites work in restricted mode
+
+6. **Safety audit:**
+   - Verify no file operation can touch module/system directories
+   - Verify delete always requires confirmation
+   - Verify move cannot overwrite existing files silently
+   - Test rapid move/delete operations → verify no race conditions in index updates
+
+### Verification
+
+- [ ] Move file: source → destination, index updated, tags regenerated, notification shown
+- [ ] Move folder: recursive, all index entries updated
+- [ ] Delete file: gone from disk, index, search — after confirmation
+- [ ] Delete folder: all contents removed after confirmation
+- [ ] Read-only locations (modules, systems) block move/delete
+- [ ] Favorites: add, navigate, rename, remove — full cycle
+- [ ] Favorites are per-user (independent between GM accounts)
+- [ ] Virtual scroll: smooth at 1000+ items, DOM count stays under 200
+- [ ] Player restricted mode: no tag edit, no move, no delete, location-filtered browse/search
+- [ ] Cross-feature: deleted files disappear from search results and favorites
+- [ ] No console errors across all Phase 3 features
+- [ ] No data loss scenarios possible via the UI
+
+---
+
+## Post-Phase 3 — Future Roadmap
+
+Once all Phase 3 iterations pass verification, Asset Vault is a comprehensive media management solution.
+
+**Future considerations:**
+- **File usage detection** — Scan world documents (scenes, actors, items, journals) to determine which files are referenced. Show "Used by: Scene X, Actor Y" in the detail panel. Flag unreferenced files as orphans for cleanup.
+- **Extensibility API** — Allow other modules to register custom search providers, additional scan locations, and read/write tags programmatically.
+- **Batch operations** — Multi-select files for bulk tagging, moving, or deleting.
+- **Smart collections** — Saved searches / dynamic folders (e.g., "All NPC tokens", "Unused maps").
+- **Image editing** — Basic crop, resize, or format conversion within the Hub.
+- **S3 / external storage** — Full support for S3 storage backends beyond basic browse.
+
+---
+
+*Plan version: 3.0*
 *Companion document: DESIGN.md (Asset Vault Design Guidelines v1.1)*
