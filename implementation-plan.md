@@ -748,13 +748,30 @@ game.assetVault.index.getHaystack().length === game.assetVault.index.size
 
 ### Verification
 
-- [ ] Searching "goblin" returns entries with "goblin" in filename or tags
-- [ ] Fuzzy matching works: "gblin" matches "goblin" entries
-- [ ] Results are ordered by relevance (exact matches first)
-- [ ] Empty query returns empty array (or all entries — decide and be consistent)
-- [ ] Search completes in <50ms for 5,000+ entries (check with `console.time`)
-- [ ] No errors when searching with index not ready
-- [ ] Debounce works — rapid typing doesn't trigger excessive searches
+Verify via browser console (wait for rebuild to finish first):
+```javascript
+// Basic search
+game.assetVault.index.search("goblin")
+
+// Fuzzy search
+game.assetVault.index.search("gblin")
+
+// Empty query — should return []
+game.assetVault.index.search("")
+
+// Performance check
+console.time("search"); game.assetVault.index.search("warrior"); console.timeEnd("search")
+```
+
+- [X] `game.assetVault.index.search("goblin")` returns entries whose name or tags contain "goblin"
+- [X] Fuzzy matching: `search("gblin")` returns goblin entries (uFuzzy intraMode: 1)
+- [X] Results are sorted by relevance (exact name match appears before tag-only match)
+- [X] `search("")` returns `[]` (empty query → empty result, not all entries)
+- ~~[ ] `search("anything")` returns `[]` when `index.status !== "ready"`~~
+- [X] Search over full index completes in under 50ms (console.time)
+- [X] No console errors on any search call
+
+Note: debounce wiring is part of Iteration 12 (UI integration).
 
 ---
 

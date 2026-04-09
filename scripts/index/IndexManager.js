@@ -2,6 +2,7 @@ import { IndexStore } from "./IndexStore.js";
 import { Scanner } from "./Scanner.js";
 import { createEntry, typeFromPath } from "./IndexEntry.js";
 import { generateTags } from "./AutoTagger.js";
+import { SearchEngine } from "../search/SearchEngine.js";
 
 /**
  * Singleton index manager attached to `game.assetVault.index`.
@@ -15,6 +16,7 @@ export class IndexManager {
   progress = 0;
 
   #store = new IndexStore();
+  #search = new SearchEngine();
 
   /* -------------------------------------------- */
   /*  Initialisation                              */
@@ -30,6 +32,7 @@ export class IndexManager {
     try {
       const found = await this.#store.load();
       this.status = found ? "ready" : "none";
+      if (found) this.#search.update(this.#store.getHaystack(), this.#store.getEntries());
     } catch(err) {
       console.error("Asset Vault | IndexManager.initialize failed:", err);
       this.status = "error";
@@ -74,6 +77,7 @@ export class IndexManager {
       this.#store.addEntries(entries);
       await this.#store.save();
 
+      this.#search.update(this.#store.getHaystack(), this.#store.getEntries());
       this.status = "ready";
       this.progress = 100;
       console.log(`Asset Vault | Rebuild complete: ${entries.length} entries indexed`);
@@ -147,6 +151,17 @@ export class IndexManager {
    */
   getHaystack() {
     return this.#store.getHaystack();
+  }
+
+  /**
+   * Fuzzy-search the index. Returns entries sorted by relevance.
+   * Returns an empty array when the index is not ready or query is empty.
+   * @param {string} query
+   * @returns {import("./IndexEntry.js").IndexEntry[]}
+   */
+  search(query) {
+    if (this.status !== "ready") return [];
+    return this.#search.search(query);
   }
 
   get size() {
