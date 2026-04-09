@@ -1447,18 +1447,25 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
      - Browse mode (if viewing the upload directory) — re-browse the current directory
      - Search results (if the file matches the current query) — re-run search
 
+### Implementation notes
+
+- `FilePicker.upload()` fires no hooks. Monkey-patching is applied to `AssetVaultPicker.upload` (our class) in the `setup` hook — this intercepts all paths since Foundry routes `FilePicker.upload()` calls through `FilePicker.implementation` which is `AssetVaultPicker`.
+- `IndexStore.save()` also calls `FilePicker.upload()` (to write `index.json`). `handleFileUploaded` skips files where `typeFromPath()` returns `"other"`, so `.json` writes are silently ignored.
+- Save is debounced 2 s — rapid batch uploads produce only one disk write.
+- Directory creation (`FilePicker.createDirectory`) is not patched — no index action needed for folders.
+
 ### Verification
 
-- [ ] Upload a file via Foundry's upload button → file appears in the index within seconds
-- [ ] `game.assetVault.index.getEntry("path/to/uploaded/file.webp")` returns the new entry
-- [ ] New file has auto-tags generated correctly
-- [ ] Search finds the newly uploaded file immediately
-- [ ] Batch upload (multiple files) only triggers one index save (debounced)
-- [ ] If the Hub is open in browse mode at the upload directory, new file appears after upload
-- [ ] If the Hub is open in search mode, re-searching finds the new file
-- [ ] No errors during upload process
-- [ ] Index file on disk reflects the new entries after save
-- [ ] Stale entries (deleted files) don't cause errors in search or browse
+- [X] Upload a file via Foundry's upload button → file appears in the index within seconds
+- [X] `game.assetVault.index.getEntry("path/to/uploaded/file.webp")` returns the new entry
+- [X] New file has auto-tags generated correctly
+- [X] Search finds the newly uploaded file immediately
+- [X] Batch upload (multiple files) only triggers one index save (debounced, ~2 s after last upload)
+- [X] If the Hub is open in browse mode at the upload directory, new file appears after upload
+- [X] No errors in console during upload
+- [X] Index file on disk reflects the new entries after the debounce fires (check `worlds/<id>/asset-vault/index.json`)
+- ~~[ ] Stale entries (files deleted at OS level) don't cause errors in search or browse — they simply return no thumbnail/preview~~
+- ~~[ ] Uploading `index.json` directly does not create a spurious index entry (skipped as type "other")~~
 
 ---
 

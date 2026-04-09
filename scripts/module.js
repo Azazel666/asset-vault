@@ -24,6 +24,20 @@ Hooks.once("init", () => {
 
 Hooks.once("setup", () => {
   CONFIG.ux.FilePicker = AssetVaultPicker;
+
+  // Monkey-patch upload on our own class so the hook fires whether callers use
+  // FilePicker.upload() (which delegates here via FilePicker.implementation) or
+  // AssetVaultPicker.upload() directly.  IndexStore.save() also goes through this
+  // path; IndexManager.handleFileUploaded() skips non-media types to avoid
+  // self-indexing the index.json file.
+  const _origUpload = AssetVaultPicker.upload;
+  AssetVaultPicker.upload = async function(source, path, file, body = {}, options = {}) {
+    const result = await _origUpload.call(this, source, path, file, body, options);
+    if (result && result !== false) {
+      Hooks.callAll("assetVault.fileUploaded", source, path, file.name, result);
+    }
+    return result;
+  };
 });
 
 Hooks.once("ready", async () => {

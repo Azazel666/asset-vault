@@ -53,6 +53,12 @@
       title="{{localize 'asset-vault.search.hintTitle'}}">
       <i class="fa-solid fa-circle-question"></i>
     </button>
+    {{#if canUpload}}
+    <button type="button" class="av-view-btn av-upload-btn" data-action="uploadFile"
+      title="{{localize 'asset-vault.toolbar.upload'}}">
+      <i class="fa-solid fa-upload"></i>
+    </button>
+    {{/if}}
     <button type="button" class="av-view-btn av-detach-btn" data-action="detachWindow"
       title="{{#if isDetached}}{{localize 'asset-vault.toolbar.attach'}}{{else}}{{localize 'asset-vault.toolbar.detach'}}{{/if}}">
       <i class="fa-solid {{#if isDetached}}fa-down-left-and-up-right-to-center{{else}}fa-up-right-from-square{{/if}}"></i>
@@ -62,3 +68,6 @@
 <div class="av-search-hint" hidden>
   {{localize "asset-vault.search.hint"}}
 </div>
+{{#if canUpload}}
+<input type="file" class="av-upload-input" multiple hidden>
+{{/if}}

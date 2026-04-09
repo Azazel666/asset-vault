@@ -18,6 +18,9 @@ export class IndexManager {
   #store = new IndexStore();
   #search = new SearchEngine();
 
+  /** Debounced save — batches rapid uploads into a single disk write. */
+  #saveDebounced = null;
+
   /* -------------------------------------------- */
   /*  Initialisation                              */
   /* -------------------------------------------- */
@@ -29,6 +32,16 @@ export class IndexManager {
    * @returns {Promise<void>}
    */
   async initialize() {
+    // Initialise the debounced save here so foundry.utils is available.
+    this.#saveDebounced = foundry.utils.debounce(() => {
+      this.#store.save().catch(err => console.error("Asset Vault | Debounced save failed:", err));
+    }, 2000);
+
+    // Listen for uploads made through the monkey-patched FilePicker.upload.
+    Hooks.on("assetVault.fileUploaded", (source, dirPath, fileName) => {
+      this.handleFileUploaded(source, dirPath, fileName);
+    });
+
     try {
       const found = await this.#store.load();
       this.status = found ? "ready" : "none";
@@ -259,6 +272,54 @@ export class IndexManager {
 
   async save() {
     await this.#store.save();
+  }
+
+  /**
+   * Called when a file is successfully uploaded via FilePicker.upload().
+   * Creates an index entry for the new file, updates the search engine,
+   * and schedules a debounced save.
+   * Non-media files (type "other") are silently skipped — this prevents
+   * the module's own index.json writes from being self-indexed.
+   * @param {string} source  - "data", "public", or "s3"
+   * @param {string} dirPath - Directory path the file was uploaded to
+   * @param {string} fileName - The uploaded file's name
+   */
+  handleFileUploaded(source, dirPath, fileName) {
+    if (this.status !== "ready") return;
+
+    const filePath = dirPath ? `${dirPath}/${fileName}` : fileName;
+    const type = typeFromPath(filePath);
+    if (type === "other") return; // skip json, txt, etc.
+
+    const sourceKey = this.#sourceKeyForPath(filePath);
+    const entry = createEntry(filePath, {
+      type,
+      source: sourceKey,
+      autoTags: generateTags(filePath, sourceKey),
+      userTags: this.#store.getEntry(filePath)?.userTags ?? []
+    });
+
+    this.#store.addEntries([entry]);
+    this.#search.update(this.#store.getHaystack(), this.#store.getEntries());
+    this.#saveDebounced();
+
+    console.log(`Asset Vault | Indexed uploaded file: ${filePath}`);
+    Hooks.callAll("assetVault.fileIndexed", filePath);
+  }
+
+  /**
+   * Map a file path to its source key using the same rules as #resolveLocations.
+   * @param {string} filePath
+   * @returns {string}
+   */
+  #sourceKeyForPath(filePath) {
+    const worldPrefix = `worlds/${game.world.id}/`;
+    if (filePath.startsWith(worldPrefix)) return "world:current";
+    if (filePath.startsWith("assets/")) return "assets";
+    if (filePath.startsWith("modules/")) return `module:${filePath.split("/")[1]}`;
+    if (filePath.startsWith("systems/")) return `system:${filePath.split("/")[1]}`;
+    if (filePath.startsWith("worlds/")) return `world:${filePath.split("/")[1]}`;
+    return "data";
   }
 
   /**

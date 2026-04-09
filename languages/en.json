@@ -42,6 +42,8 @@
   "asset-vault.actions.copyClass": "Copy Class",
   "asset-vault.notifications.copiedUrl": "Copied: {path}",
   "asset-vault.notifications.copiedClass": "Copied class: {name}",
+  "asset-vault.notifications.uploadSuccess": "Uploaded {count} file(s) to {path}",
+  "asset-vault.notifications.uploadFailed": "Failed to upload {count} file(s)",
 
   "asset-vault.search.placeholder": "Search assets…",
   "asset-vault.search.clear": "Clear search",
@@ -62,6 +64,7 @@
 
   "asset-vault.nav.back": "Go up one level",
   "asset-vault.nav.toggleSidebar": "Toggle sidebar",
+  "asset-vault.toolbar.upload": "Upload files",
   "asset-vault.toolbar.detach": "Pop out to separate window",
   "asset-vault.toolbar.attach": "Return to main window",
   "asset-vault.detach.popupBlocked": "Popup blocked — allow popups for this site to use detached mode.",

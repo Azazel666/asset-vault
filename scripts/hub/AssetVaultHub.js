@@ -15,6 +15,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   #lastBrowsePath = "";
   #lastBrowseSource = "data";
   #indexStatusHook = null;
+  #fileIndexedHook = null;
   #autocomplete = null;
   #activeMedia = null;
   #popoutWindow = null;
@@ -69,7 +70,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       toggleSourceFilter: AssetVaultHub.#onToggleSourceFilter,
       toggleTagFilter:    AssetVaultHub.#onToggleTagFilter,
       clearAllFilters:    AssetVaultHub.#onClearAllFilters,
-      detachWindow:       AssetVaultHub.#onDetachWindow
+      detachWindow:       AssetVaultHub.#onDetachWindow,
+      uploadFile:         AssetVaultHub.#onUploadFile
     }
   };
 
@@ -189,10 +191,15 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     }
 
+    const canUpload = !isSearchMode
+      && this.activeSource !== "s3"
+      && (game.user.isGM || game.settings.get("asset-vault", "enableForPlayers"));
+
     return {
       mode: this.mode,
       isPicker: this.mode === "picker",
       isDetached: this.#isDetached,
+      canUpload,
       viewMode,
       isGrid: viewMode === "grid",
       isList: viewMode === "list",
@@ -261,6 +268,27 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this.#indexStatusHook) {
       this.#indexStatusHook = () => this.render();
       Hooks.on("assetVault.indexStatus", this.#indexStatusHook);
+    }
+
+    // Register file-indexed hook once — refreshes browse/search when a new file is uploaded
+    if (!this.#fileIndexedHook) {
+      this.#fileIndexedHook = (filePath) => {
+        const isSearchMode = this.#searchFilters.length > 0 || this.#searchFreeText.length > 0;
+        if (isSearchMode) {
+          // New file is already in the index; re-render to include it in results
+          this.render();
+        } else {
+          // In browse mode: only refresh if the file landed in the current directory
+          const fileDir = filePath.includes("/")
+            ? filePath.substring(0, filePath.lastIndexOf("/"))
+            : "";
+          if (fileDir === this.target) {
+            this.#browseResult = null;
+            this.render();
+          }
+        }
+      };
+      Hooks.on("assetVault.fileIndexed", this.#fileIndexedHook);
     }
 
     // Restore sidebar collapsed / search-hidden state
@@ -336,6 +364,16 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       });
     }
 
+    // Wire upload file input
+    const uploadInput = this.element.querySelector(".av-upload-input");
+    if (uploadInput) {
+      uploadInput.addEventListener("change", async (e) => {
+        const files = Array.from(e.target.files);
+        e.target.value = ""; // reset so the same file can be re-uploaded
+        if (files.length) await this.#doUploadFiles(files);
+      });
+    }
+
     // Search syntax hint toggle
     const hintBtn = this.element.querySelector(".av-search-hint-btn");
     const hintEl  = this.element.querySelector(".av-search-hint");
@@ -380,6 +418,10 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.#indexStatusHook) {
       Hooks.off("assetVault.indexStatus", this.#indexStatusHook);
       this.#indexStatusHook = null;
+    }
+    if (this.#fileIndexedHook) {
+      Hooks.off("assetVault.fileIndexed", this.#fileIndexedHook);
+      this.#fileIndexedHook = null;
     }
     this.#stopActiveMedia();
     this.#autocomplete?.destroy();
@@ -663,6 +705,36 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       await this.#closeDetachedWindow();
     } else {
       await this.#openDetachedWindow();
+    }
+  }
+
+  static #onUploadFile() {
+    this.element.querySelector(".av-upload-input")?.click();
+  }
+
+  async #doUploadFiles(files) {
+    const source = this.activeSource;
+    const path = this.target;
+
+    const results = await Promise.allSettled(
+      files.map(file => FilePicker.upload(source, path, file, {}, { notify: false }))
+    );
+
+    const successes = results.filter(r => r.status === "fulfilled" && r.value && r.value !== false).length;
+    const failures = files.length - successes;
+
+    if (successes > 0) {
+      ui.notifications.info(
+        game.i18n.format("asset-vault.notifications.uploadSuccess", {
+          count: successes,
+          path: path || "/"
+        })
+      );
+    }
+    if (failures > 0) {
+      ui.notifications.error(
+        game.i18n.format("asset-vault.notifications.uploadFailed", { count: failures })
+      );
     }
   }
 
