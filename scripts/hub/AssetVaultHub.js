@@ -235,6 +235,18 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   /* -------------------------------------------- */
 
   async _onFirstRender(context, options) {
+    // Create context menus once — event delegation on this.element survives re-renders
+    this._createContextMenu(this._getFileContextOptions, ".av-item-file", {
+      fixed: true,
+      hookName: "getAssetVaultFileContextOptions",
+      parentClassHooks: false
+    });
+    this._createContextMenu(this._getFolderContextOptions, ".av-item-dir", {
+      fixed: true,
+      hookName: "getAssetVaultFolderContextOptions",
+      parentClassHooks: false
+    });
+
     // Auto-detach if the user previously chose detached mode (hub mode only)
     if (this.mode === "hub" && game.settings.get("asset-vault", "detachedMode")) {
       await this.#openDetachedWindow();
@@ -760,6 +772,140 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     if (callback) callback(this.selectedFile.path);
     if (field) field.value = this.selectedFile.path;
     this.close();
+  }
+
+  /* -------------------------------------------- */
+  /*  Context menus                               */
+  /* -------------------------------------------- */
+
+  _getFileContextOptions() {
+    return [
+      {
+        name: "asset-vault.context.copyUrl",
+        icon: '<i class="fa-solid fa-link"></i>',
+        condition: target => target.dataset.isIcon !== "true",
+        callback: async target => {
+          await navigator.clipboard.writeText(target.dataset.path);
+          ui.notifications.info(
+            game.i18n.format("asset-vault.notifications.copiedUrl", { path: target.dataset.name })
+          );
+        }
+      },
+      {
+        name: "asset-vault.context.copyClass",
+        icon: '<i class="fa-solid fa-copy"></i>',
+        condition: target => target.dataset.isIcon === "true",
+        callback: async target => {
+          await navigator.clipboard.writeText(target.dataset.path);
+          ui.notifications.info(
+            game.i18n.format("asset-vault.notifications.copiedClass", { name: target.dataset.name })
+          );
+        }
+      },
+      {
+        name: "asset-vault.context.copyFilename",
+        icon: '<i class="fa-solid fa-file"></i>',
+        callback: async target => {
+          await navigator.clipboard.writeText(target.dataset.name);
+        }
+      },
+      {
+        name: "asset-vault.context.openNewTab",
+        icon: '<i class="fa-solid fa-arrow-up-right-from-square"></i>',
+        condition: target => target.dataset.isIcon !== "true",
+        callback: target => {
+          window.open(target.dataset.path, "_blank");
+        }
+      },
+      {
+        name: "asset-vault.context.showInFolder",
+        icon: '<i class="fa-solid fa-folder-open"></i>',
+        condition: target => {
+          const inSearch = this.#searchFilters.length > 0 || this.#searchFreeText.length > 0;
+          return inSearch && target.dataset.isIcon !== "true";
+        },
+        callback: target => {
+          const path = target.dataset.path;
+          const dir = path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "";
+          this.navigate(dir, "data");
+        }
+      },
+      {
+        name: "asset-vault.context.addTag",
+        icon: '<i class="fa-solid fa-tag"></i>',
+        condition: () => this.mode === "hub" && game.user.isGM,
+        callback: target => {
+          this.#doContextAddTag(target.dataset.path, target.dataset.name);
+        }
+      },
+      {
+        name: "asset-vault.context.select",
+        icon: '<i class="fa-solid fa-check"></i>',
+        condition: () => this.mode === "picker",
+        callback: target => {
+          this.selectedFile = this.#fileDataFromElement(target);
+          this.#doConfirmSelection();
+        }
+      }
+    ];
+  }
+
+  _getFolderContextOptions() {
+    return [
+      {
+        name: "asset-vault.context.openFolder",
+        icon: '<i class="fa-solid fa-folder-open"></i>',
+        callback: target => {
+          this.navigate(target.dataset.path);
+        }
+      },
+      {
+        name: "asset-vault.context.copyPath",
+        icon: '<i class="fa-solid fa-copy"></i>',
+        callback: async target => {
+          await navigator.clipboard.writeText(target.dataset.path);
+        }
+      }
+    ];
+  }
+
+  async #doContextAddTag(path, name) {
+    const index = game.assetVault?.index;
+    if (!index) return;
+
+    const { DialogV2 } = foundry.applications.api;
+    const result = await DialogV2.input({
+      window: { title: game.i18n.format("asset-vault.context.addTagTitle", { name }) },
+      content: `<div class="form-group">
+        <label>${game.i18n.localize("asset-vault.tags.addPlaceholder")}</label>
+        <input type="text" name="tags" placeholder="${game.i18n.localize("asset-vault.tags.addPlaceholder")}" autofocus maxlength="200">
+      </div>`,
+      position: { width: 340 }
+    });
+    if (!result?.tags) return;
+
+    const tags = result.tags.split(",")
+      .map(t => t.trim().toLowerCase())
+      .filter(t => t.length > 0 && t.length <= 50);
+    if (tags.length === 0) return;
+
+    const entry = index.getEntry(path);
+    const existing = entry?.userTags ?? [];
+    const allExisting = [...(entry?.autoTags ?? []), ...existing];
+    const duplicates = tags.filter(t => allExisting.includes(t));
+    const newTags = tags.filter(t => !allExisting.includes(t));
+
+    if (duplicates.length > 0) {
+      ui.notifications.warn(
+        game.i18n.format("asset-vault.notifications.tagDuplicate", { tag: duplicates.join(", ") })
+      );
+    }
+    if (newTags.length === 0) return;
+
+    await index.updateUserTags(path, [...existing, ...newTags]);
+
+    // Refresh detail panel if this file is currently selected
+    if (this.selectedFile?.path === path) this.#renderDetailPanel();
   }
 
   /* -------------------------------------------- */

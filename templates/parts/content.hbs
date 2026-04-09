@@ -47,7 +47,7 @@
 {{else}}
 <div class="av-items" data-view="{{viewMode}}">
   {{#each dirs}}
-  <div class="av-item av-item-dir" data-action="pickDirectory" data-path="{{path}}" title="{{name}}">
+  <div class="av-item av-item-dir" data-action="pickDirectory" data-path="{{path}}" data-name="{{name}}" title="{{name}}">
     <i class="fa-solid fa-folder av-item-icon"></i>
     <span class="av-item-name">{{name}}</span>
     <span class="av-item-type">{{localize "asset-vault.content.typeFolder"}}</span>

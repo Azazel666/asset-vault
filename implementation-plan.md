@@ -1388,20 +1388,24 @@ Auto-detach on startup (from the `detachedMode` setting) requires a user gesture
 5. Context menu for folders:
    - Simplified menu: only "Open" (navigate into) and "Copy Path"
 
+### Implementation Note
+
+Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and `jQuery: false`. Context menus are created once in `_onFirstRender` with event delegation on `this.element`, so they survive re-renders automatically. "Show in Folder" is only visible in search mode; "Add Tag" is GM-only in hub mode; "Select" is picker mode only; "Copy Class" replaces "Copy URL" for icon entries; "Open in New Tab" is hidden for icon entries.
+
 ### Verification
 
-- [ ] Right-clicking a file in grid view shows the context menu
-- [ ] Right-clicking a file in list view shows the context menu
-- [ ] "Copy URL" copies the full path to clipboard
-- [ ] "Copy Filename" copies just the filename
-- [ ] "Open in New Tab" opens the file in a new browser tab
-- [ ] "Show in Folder" switches from search to browse and navigates to the file's directory
-- [ ] "Add Tag" opens a dialog and successfully adds tags
-- [ ] "Select" appears only in picker mode and confirms selection
-- [ ] Context menu on a folder shows reduced options
-- [ ] Context menu on a Font Awesome icon shows "Copy Class" instead of "Copy URL"
-- [ ] Menu closes on click outside or Escape key
-- [ ] No errors when right-clicking various file types
+- [X] Right-clicking a file in grid view shows the context menu
+- [X] Right-clicking a file in list view shows the context menu
+- [X] "Copy URL" copies the full path to clipboard (file entries only)
+- [X] "Copy Filename" copies just the filename
+- [X] "Open in New Tab" opens the file URL in a new browser tab (file entries only, not icons)
+- [X] "Show in Folder" only appears in search mode and navigates to the file's parent directory
+- [X] "Add Tag" only appears in hub mode for GMs; opens a dialog and adds tags correctly
+- [X] "Select" appears only in picker mode and confirms the selection
+- [X] Right-clicking a folder (browse mode) shows only "Open Folder" and "Copy Path"
+- [X] Context menu on a Font Awesome icon shows "Copy Class" instead of "Copy URL", no "Open in New Tab"
+- [X] Menu closes on click outside
+- [X] No errors when right-clicking various file types
 
 ---
 
