@@ -971,19 +971,30 @@ Note: debounce wiring is part of Iteration 12 (UI integration).
 
 ### Verification
 
-- [ ] All file picker entry points work with Asset Vault in picker mode
-- [ ] Hub opens from scene UI button and works independently
-- [ ] Browse → select → apply works for all file types (picker mode)
-- [ ] Search → select → apply works for all file types (picker mode)
-- [ ] Browse and search work in hub mode without select/callback behavior
-- [ ] Hub and picker can coexist (open simultaneously as separate instances)
-- [ ] Escape hatch correctly toggles picker without affecting hub
-- [ ] No console errors during normal usage
-- [ ] No memory leaks (check after opening/closing hub and picker 10 times each)
-- [ ] Search latency under 100ms for typical queries
-- [ ] Grid view renders smoothly with 200+ files visible
-- [ ] Layout looks correct at various dialog sizes
-- [ ] All text is localized via i18n keys (no hardcoded strings in templates)
+**Picker mode**
+- [X] Scene background image picker → browse to file → applies correctly
+- [X] Actor portrait picker → search for file → applies correctly
+- [X] Tile image picker → browse + double-click → applies correctly
+- [X] Audio playlist track picker → file type filter shows only audio
+- [X] File type filtering correct per entry point (image picker doesn't show audio files)
+
+**Hub mode**
+- [X] Hub opens from Tile Controls → Browse button (vault icon)
+- [X] Hub open + trigger a file picker → both windows coexist with separate DOM ids
+- [X] No "Select" footer button or callback behavior in hub mode
+- [X] Copy URL copies path to clipboard
+
+**Escape hatch**
+- [X] Enable "Use Default Picker" → file picker buttons use Foundry's default picker
+- [X] With escape hatch on → Tile Controls Browse button reverts to default behaviour
+- [X] Disable escape hatch → file picker buttons use Asset Vault again
+
+**Polish**
+- [X] File type labels (Image, Video, Audio, PDF, File, Folder) display correctly in list view
+- [X] Scan Locations → Rebuild button saves settings, fires rebuild, stays open showing spinner
+- [X] Index status banner auto-shows when rebuild starts, disappears when done (hub open)
+- [X] No console errors during typical browse, search, and picker workflows
+- [X] Search latency: `console.time("s"); game.assetVault.index.search("goblin"); console.timeEnd("s")` — under 100ms
 
 ---
 

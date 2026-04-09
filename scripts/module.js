@@ -23,10 +23,7 @@ Hooks.once("init", () => {
 });
 
 Hooks.once("setup", () => {
-  // user-scoped settings are available here (not in init)
-  if (!game.settings.get("asset-vault", "useDefaultPicker")) {
-    CONFIG.ux.FilePicker = AssetVaultPicker;
-  }
+  CONFIG.ux.FilePicker = AssetVaultPicker;
 });
 
 Hooks.once("ready", async () => {
@@ -49,7 +46,6 @@ Hooks.on("getSceneControlButtons", (controls) => {
   const browse = controls?.tiles?.tools?.browse;
   if (!browse) return;
   browse.title = "asset-vault.title";
-  browse.icon = "fa-solid fa-vault";
   browse.onChange = () => new AssetVaultHub({ mode: "hub" }).render(true);
   delete browse.toolclip;
 });

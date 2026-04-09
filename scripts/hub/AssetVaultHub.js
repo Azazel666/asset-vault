@@ -50,6 +50,15 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     body: { template: "modules/asset-vault/templates/hub.hbs" }
   };
 
+  get title() {
+    if (this.mode !== "picker") return game.i18n.localize("asset-vault.title");
+    const type = this.pickerOptions.type ?? "";
+    if (type === "image") return game.i18n.localize("asset-vault.picker.titleImage");
+    if (type === "audio") return game.i18n.localize("asset-vault.picker.titleAudio");
+    if (type === "video") return game.i18n.localize("asset-vault.picker.titleVideo");
+    return game.i18n.localize("asset-vault.picker.titleFile");
+  }
+
   /* -------------------------------------------- */
   /*  Context                                     */
   /* -------------------------------------------- */
@@ -72,7 +81,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
             const isVideo = entry.type === "video";
             const isAudio = entry.type === "audio";
             const isPdf = entry.type === "pdf";
-            const fileType = isImage ? "Image" : isVideo ? "Video" : isAudio ? "Audio" : isPdf ? "PDF" : "File";
+            const fileType = game.i18n.localize(isImage ? "asset-vault.content.typeImage" : isVideo ? "asset-vault.content.typeVideo" : isAudio ? "asset-vault.content.typeAudio" : isPdf ? "asset-vault.content.typePdf" : "asset-vault.content.typeFile");
             return {
               name: entry.name,
               path: entry.path,
@@ -104,7 +113,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
             const isVideo = foundry.helpers.media.VideoHelper.hasVideoExtension(path);
             const isAudio = foundry.audio.AudioHelper.hasAudioExtension(path);
             const isPdf = path.toLowerCase().endsWith(".pdf");
-            const fileType = isImage ? "Image" : isVideo ? "Video" : isAudio ? "Audio" : isPdf ? "PDF" : "File";
+            const fileType = game.i18n.localize(isImage ? "asset-vault.content.typeImage" : isVideo ? "asset-vault.content.typeVideo" : isAudio ? "asset-vault.content.typeAudio" : isPdf ? "asset-vault.content.typePdf" : "asset-vault.content.typeFile");
             return {
               name: decodeURIComponent(path.split("/").pop()),
               path, isImage, isVideo, isAudio, isPdf, fileType,

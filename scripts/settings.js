@@ -8,7 +8,7 @@ export function registerSettings() {
     config: true,
     type: Boolean,
     default: false,
-    requiresReload: true
+    onChange: () => ui.controls?.render()
   });
 
   game.settings.register("asset-vault", "viewMode", {

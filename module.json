@@ -1,7 +1,7 @@
 {
   "id": "asset-vault",
   "title": "Asset Vault",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "compatibility": {
     "minimum": "13",
     "verified": "13"
@@ -13,7 +13,6 @@
       "flags": {}
     }
   ],
-  "url": "https://github.com/Azazel666/asset-vault/releases/download/latest/asset-vault.zip",
   "esmodules": ["scripts/module.js"],
   "styles": ["styles/asset-vault.css"],
   "languages": [
@@ -25,5 +24,7 @@
   ],
   "flags": {
     "canUpload": true
-  }
+  },
+  "manifest": "https://github.com/Azazel666/asset-vault/releases/latest/download/module.json",
+  "download": "https://github.com/Azazel666/asset-vault/releases/download/v1-beta.1/asset-vault.zip"
 }

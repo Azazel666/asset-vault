@@ -2,7 +2,7 @@
   "asset-vault.title": "Asset Vault",
 
   "asset-vault.settings.useDefaultPicker.name": "Use Default File Picker",
-  "asset-vault.settings.useDefaultPicker.hint": "Disable Asset Vault and use Foundry's built-in file picker instead. Requires a page reload.",
+  "asset-vault.settings.useDefaultPicker.hint": "Disable Asset Vault and use Foundry's built-in file picker instead.",
 
   "asset-vault.settings.viewMode.name": "Default View Mode",
   "asset-vault.settings.viewMode.hint": "Choose whether assets are displayed as a grid or a list by default.",
@@ -21,6 +21,11 @@
   "asset-vault.settings.scanLocations.name": "Scan Locations",
   "asset-vault.settings.scanLocations.label": "Configure",
   "asset-vault.settings.scanLocations.comingSoon": "Scan location configuration coming soon.",
+
+  "asset-vault.picker.titleImage": "Image Browser",
+  "asset-vault.picker.titleAudio": "Audio Browser",
+  "asset-vault.picker.titleVideo": "Video Browser",
+  "asset-vault.picker.titleFile": "File Browser",
 
   "asset-vault.actions.select": "Select",
   "asset-vault.actions.copyUrl": "Copy URL",
@@ -44,6 +49,12 @@
   "asset-vault.sidebar.favorites": "Favorites",
   "asset-vault.sidebar.favoritesEmpty": "No favorites yet",
   "asset-vault.content.empty": "No files found in this folder",
+  "asset-vault.content.typeFolder": "Folder",
+  "asset-vault.content.typeImage": "Image",
+  "asset-vault.content.typeVideo": "Video",
+  "asset-vault.content.typeAudio": "Audio",
+  "asset-vault.content.typePdf": "PDF",
+  "asset-vault.content.typeFile": "File",
   "asset-vault.detail.placeholder": "Select an asset to see details",
 
   "asset-vault.scanLocations.currentWorld": "Current World",

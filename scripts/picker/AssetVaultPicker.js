@@ -3,19 +3,17 @@ import { AssetVaultHub } from "../hub/AssetVaultHub.js";
 const { FilePicker } = foundry.applications.apps;
 
 export class AssetVaultPicker extends FilePicker {
-  static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {
-    window: {
-      icon: "fa-solid fa-vault"
-    }
-  });
-
-  get title() {
-    return game.i18n.localize("asset-vault.title");
-  }
-
   // Delegate to AssetVaultHub in picker mode instead of rendering itself.
   render(options = {}) {
+    // Escape hatch: fall back to the original picker if the setting is on.
+    if (game.settings.get("asset-vault", "useDefaultPicker")) {
+      return new game.assetVault.originalPicker(this.options).render(options);
+    }
+
     const hub = new AssetVaultHub({
+      // Each picker instance gets a unique id so it can coexist with the hub
+      // or other picker instances without sharing the same DOM id.
+      id: `asset-vault-picker-${foundry.utils.randomID()}`,
       mode: "picker",
       pickerOptions: {
         type: this.type,

@@ -105,27 +105,29 @@ export class ScanLocationsConfig extends HandlebarsApplicationMixin(ApplicationV
   /*  Actions                                     */
   /* -------------------------------------------- */
 
-  static async #onSave() {
+  /** Persist the current form state to the setting. Does NOT close the dialog. */
+  async #persistSettings() {
     const form = this.element.querySelector("form.avsl-form");
     if (!form) return;
-
     const setting = {};
-
     for (const input of form.querySelectorAll("input[type='checkbox'][name]")) {
       setting[input.name] = input.checked;
     }
-
     await game.settings.set("asset-vault", "scanLocations", setting);
+  }
+
+  static async #onSave() {
+    await this.#persistSettings();
     ui.notifications.info(game.i18n.localize("asset-vault.scanLocations.saved"));
     this.close();
   }
 
-  static #onRebuild(event, button) {
+  static async #onRebuild(event, button) {
     const index = game.assetVault?.index;
     if (!index || index.status === "building") return;
-    // Save current form state first so the rebuild uses updated config
-    ScanLocationsConfig.#onSave.call(this).then(() => {
-      index.rebuild().catch(err => console.error("Asset Vault | Rebuild error:", err));
-    });
+    // Save settings first so rebuild uses the updated config, then fire rebuild
+    // without closing the dialog (user can watch the button spinner).
+    await this.#persistSettings();
+    index.rebuild().catch(err => console.error("Asset Vault | Rebuild error:", err));
   }
 }

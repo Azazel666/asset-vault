@@ -1,0 +1,26 @@
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editors and IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node (if tooling is added later)
+node_modules/
+package-lock.json
+
+# Foundry VTT runtime
+*.lock
+
+# Archives / releases
+*.zip
+*.tar.gz
+
+.claude/settings.local.json
+
+.examples/
