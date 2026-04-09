@@ -397,6 +397,16 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#activeMedia = null;
     }
 
+    // Wire dragstart directly on each file item (hub mode only).
+    // Direct wiring mirrors Foundry's DragDrop pattern and avoids native-image-drag
+    // interference that breaks event delegation.
+    if (this.mode === "hub") {
+      for (const item of this.element.querySelectorAll(".av-item-file")) {
+        item.draggable = true;
+        item.addEventListener("dragstart", ev => this.#onDragStart(ev));
+      }
+    }
+
     // Double-click a file to confirm in picker mode (works for both browse and search results)
     this.element.querySelector(".av-content")?.addEventListener("dblclick", ev => {
       if (this.mode !== "picker") return;
@@ -710,6 +720,53 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #onUploadFile() {
     this.element.querySelector(".av-upload-input")?.click();
+  }
+
+  #onDragStart(event) {
+    // Handler is only registered in hub mode — use currentTarget (the item element)
+    const item = event.currentTarget;
+
+    const { path, name } = item.dataset;
+    const isIcon  = item.dataset.isIcon  === "true";
+    const isImage = item.dataset.isImage === "true";
+    const isAudio = item.dataset.isAudio === "true";
+
+    // FA icons have no meaningful drop target
+    if (isIcon) { event.preventDefault(); return; }
+
+    event.dataTransfer.effectAllowed = "copy";
+
+    if (isImage) {
+      // text/plain must be the raw URL (not JSON) for ProseMirror RTE drops.
+      // Foundry's ProseMirrorContentLinkPlugin reads text/plain as JSON; if
+      // data.type is truthy it calls event.stopPropagation() + return true,
+      // which prevents ProseMirror from inserting the image slice.
+      // A plain URL fails JSON.parse → getDragEventData returns {} → plugin
+      // exits early, and ProseMirror uses text/html to insert the image.
+      // Canvas Tile creation is handled via a dropCanvasData hook in module.js.
+      event.dataTransfer.setData("text/plain", path);
+      // Rich text editor (ProseMirror / TinyMCE) image insertion
+      event.dataTransfer.setData("text/html", `<img src="${path}">`);
+
+      // Use thumbnail as drag ghost
+      const img = item.querySelector("img.av-thumb");
+      if (img?.complete && img.naturalWidth > 0) {
+        event.dataTransfer.setDragImage(img, img.offsetWidth / 2, img.offsetHeight / 2);
+      }
+    } else if (isAudio) {
+      // Canvas AmbientSound drop via PlaylistSound data format
+      event.dataTransfer.setData("text/plain", JSON.stringify({
+        type: "PlaylistSound",
+        data: { path, name, volume: 0.5 }
+      }));
+    } else {
+      // Video, PDF, other — provide path only; canvas silently ignores unknown types
+      event.dataTransfer.setData("text/plain", path);
+    }
+
+    // Visual feedback during drag
+    item.classList.add("av-dragging");
+    item.addEventListener("dragend", () => item.classList.remove("av-dragging"), { once: true });
   }
 
   async #doUploadFiles(files) {

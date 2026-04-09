@@ -1520,19 +1520,28 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
    - Add drag-active CSS class on the file item during drag
    - Add a subtle "drag hint" indicator on hover in hub mode (e.g., grip icon)
 
+### Implementation notes
+
+- Foundry v13's canvas reads drag data via `getDragEventData` which calls `event.dataTransfer.getData("text/plain")` and JSON-parses it. The implementation plan's `"application/json"` format is wrong — everything must go on `"text/plain"`.
+- Audio canvas drop uses `{ type: "PlaylistSound", data: { path, name, volume } }`. The canvas sounds layer calls `PlaylistSound.fromDropData` which accepts `data.data` as an inline document schema.
+- For non-image/non-audio (video, pdf, other): plain path string is set on `"text/plain"`. Foundry's `getDragEventData` silently catches the JSON parse error and returns `{}`, so the canvas switch finds no match and does nothing — safe no-op.
+- FA icons: `event.preventDefault()` on dragstart — no drag.
+- `draggable="true"` is rendered via `{{#unless isPicker}}` in the template — picker mode items are never draggable.
+- Drag ghost: for images uses the `img.av-thumb` element; for others the browser default ghost is used.
+
 ### Verification
 
-- [ ] Files in hub mode are draggable (cursor changes on hover)
-- [ ] Files in picker mode are NOT draggable
-- [ ] Dragging an image into a Journal page editor inserts the image
-- [ ] Dragging an image into an Item description field inserts the image
-- [ ] Dragging an image onto the canvas creates a Tile at the drop position
-- [ ] Dragging an audio file onto the canvas creates an AmbientSound
-- [ ] Drag ghost image shows the file thumbnail (or type icon for non-images)
-- [ ] Drag does not interfere with click-to-select or detail panel behavior
-- [ ] Dragging a Font Awesome icon does not crash (graceful no-op or copies class string)
-- [ ] Multiple rapid drags don't cause errors
-- [ ] Drop into ProseMirror editors works (Foundry v13's default rich text editor)
+- [X] Files in hub mode show a grab cursor on hover
+- [X] Files in picker mode are NOT draggable (no draggable attribute)
+- [X] Dragging an image into a Journal page editor inserts the image via ProseMirror's text/html handler
+- [X] Dragging an image into an Item description/Actor biography field inserts the image
+- [X] Dragging an image onto the canvas creates a Tile at the drop position
+- [X] Dragging an audio file onto the canvas opens the AmbientSound preview dialog
+- [X] While dragging an image, the browser ghost follows the cursor showing a copy of the thumbnail (or the item card for non-images)
+- [X] While dragging, the source item card becomes semi-transparent; returns to full opacity when released
+- [X] Drag does not interfere with click-to-select or detail panel behavior
+- [X] Dragging a Font Awesome icon does nothing (event.preventDefault called)
+- [X] Multiple rapid drags don't cause errors
 
 ---
 

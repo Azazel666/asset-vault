@@ -55,6 +55,21 @@ Hooks.once("ready", async () => {
   console.log(`Asset Vault | Index status: ${index.status}`);
 });
 
+// Canvas Tile creation from Asset Vault image drags.
+// Image drags set text/plain to the raw URL (not JSON) so ProseMirror RTEs work
+// correctly. The canvas board reads text/plain via getDragEventData, which returns {}
+// for a plain URL. We intercept here to inject the Tile drop data before the switch.
+Hooks.on("dropCanvasData", (board, data, event) => {
+  if (data.type || !event?.dataTransfer) return; // already typed — not ours
+  const raw = event.dataTransfer.getData("text/plain");
+  if (!raw) return;
+  if (!foundry.helpers.media.ImageHelper.hasImageExtension(raw)) return;
+  data.type = "Tile";
+  data.texture = { src: raw };
+  data.tileSize = canvas?.dimensions?.size ?? 100;
+  // Allow board.mjs to continue into the switch statement with data.type = "Tile"
+});
+
 Hooks.on("getSceneControlButtons", (controls) => {
   if (game.settings.get("asset-vault", "useDefaultPicker")) return;
   const browse = controls?.tiles?.tools?.browse;

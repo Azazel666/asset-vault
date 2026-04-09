@@ -618,6 +618,15 @@
   border-color: var(--color-border-medium, #9f9275);
 }
 
+.av-item-file[draggable] {
+  cursor: grab;
+}
+
+.av-item-file.av-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
 .av-item-name {
   overflow: hidden;
   text-overflow: ellipsis;
