@@ -998,28 +998,579 @@ Note: debounce wiring is part of Iteration 12 (UI integration).
 
 ---
 
-## Post-Phase 1 — What Comes Next
+## Phase 2 — Full Feature Set
 
-Once all 14 iterations pass verification, Phase 1 (MVP) is complete. The module is a functional media hub and FilePicker replacement with browse and search capabilities.
+---
 
-**Phase 2 priorities** (in suggested order):
-1. User-defined tags (add/remove in detail panel)
-2. Advanced search syntax (`[type:image] [tag:npc] dragon`)
-3. Filter panel in sidebar (search mode facets)
-4. Audio/video playback in detail panel
-5. Font Awesome icon search
-6. Detached window mode
-7. Right-click context menu
-8. Incremental index updates via upload hooks
-9. Drag-and-drop from Hub to journals, rich text editors, and canvas
+## Iteration 15 — User-Defined Tags
+
+**Goal:** GMs can add and remove custom tags on any indexed file via the detail panel. User tags are persisted in the index and searchable.
+
+### Tasks
+
+1. Add tag editing UI to the detail panel:
+   - Below the auto-tags display, add a "User Tags" section
+   - Show existing user tags as dismissible chips (click × to remove)
+   - Add an input field + "Add" button (or Enter key) to add new tags
+   - Visually distinguish user tags from auto-tags (different color/style)
+   - Auto-tags section: respect the `showAutoTags` user setting (hide if off)
+
+2. Implement tag persistence:
+   - On add/remove, update the `IndexEntry.userTags` array in `IndexManager`
+   - Immediately save the updated index to disk via `IndexStore.save()`
+   - Rebuild the haystack string for the modified entry (update in-place, don't rebuild entire haystack)
+
+3. Tag input UX:
+   - Lowercase and trim input
+   - Prevent duplicate tags (show notification if tag already exists)
+   - Prevent empty tags
+   - Support comma-separated input for adding multiple tags at once: `"npc, boss, dragon"` → 3 tags
+   - Max tag length: 50 characters
+
+4. Update haystack on tag change:
+   - After modifying `userTags`, rebuild that entry's haystack string:
+     ```javascript
+     haystack[entryIndex] = `${entry.name} ${entry.autoTags.join(" ")} ${entry.userTags.join(" ")}`;
+     ```
+   - No need to reinstantiate uFuzzy — it searches the haystack array directly
+
+### Verification
+
+- [ ] Detail panel shows "User Tags" section below auto-tags when a file is selected
+- [ ] Adding a tag via the input field creates a chip in the user tags section
+- [ ] Removing a tag (× on chip) removes it immediately
+- [ ] Tags persist after closing and reopening the Hub
+- [ ] Tags persist after world reload (check `index.json` file)
+- [ ] Searching for a user tag returns the tagged file
+- [ ] Comma-separated input creates multiple tags
+- [ ] Duplicate tags are rejected with notification
+- [ ] Empty input is ignored
+- [ ] Auto-tags are hidden when `showAutoTags` setting is off, user tags still visible
+- [ ] Tag changes on one file do not affect other files' tags
+
+---
+
+## Iteration 16 — Advanced Search Syntax
+
+**Goal:** Support structured query operators alongside free-text fuzzy search. Operators pre-filter results before uFuzzy runs on the free-text portion.
+
+### Tasks
+
+1. Create `scripts/search/QueryParser.js`:
+   - Parse a query string into structured parts:
+     ```javascript
+     // Input: "[type:image] [tag:npc] dragon cave"
+     // Output: { filters: [ {key:"type", value:"image"}, {key:"tag", value:"npc"} ], freeText: "dragon cave" }
+     ```
+   - Regex to extract `[key:value]` operators
+   - Remaining text after operator extraction = free text for uFuzzy
+   - Supported operators:
+
+   | Operator | Matches against | Example |
+   |---|---|---|
+   | `[type:<filetype>]` | `IndexEntry.type` | `[type:audio]` |
+   | `[tag:<value>]` | `autoTags` + `userTags` | `[tag:boss]` |
+   | `[source:<value>]` | `IndexEntry.source` | `[source:module:pf2e]` |
+   | `[ext:<value>]` | File extension | `[ext:webp]` |
+
+   - Case-insensitive matching
+   - Multiple operators are AND-combined
+
+2. Update `SearchEngine.search()`:
+   - Parse query via `QueryParser`
+   - Apply filters first: iterate entries, keep only those matching ALL filter operators
+   - If free text remains, build a temporary haystack from the filtered set and run uFuzzy on it
+   - If no free text (only operators), return filtered results sorted alphabetically
+   - If no operators (only free text), existing behavior unchanged
+
+3. Add search syntax hint:
+   - Tooltip or small helper text below the search bar (collapsible)
+   - Show available operators on focus or via a `?` icon button
+   - Content: `"Operators: [type:image] [tag:npc] [source:module:pf2e] [ext:webp] — combine with free text"`
+
+4. Add i18n strings for the syntax hint.
+
+### Verification
+
+- [ ] `[type:image]` returns only image files
+- [ ] `[type:audio]` returns only audio files
+- [ ] `[tag:npc]` returns files with "npc" in either autoTags or userTags
+- [ ] `[source:module:pf2e]` returns only files from the pf2e module
+- [ ] `[ext:webp]` returns only .webp files
+- [ ] `[type:image] [tag:boss] dragon` returns image files tagged "boss" with "dragon" in name/tags
+- [ ] Multiple filters are AND-combined: `[type:image] [type:audio]` returns nothing (a file can't be both)
+- [ ] Operators are case-insensitive: `[Type:Image]` works
+- [ ] Free text alone (no operators) works as before (fuzzy search)
+- [ ] Operators alone (no free text) return filtered results sorted alphabetically
+- [ ] Unknown operators (e.g., `[foo:bar]`) are treated as free text, not errors
+- [ ] Syntax hint is visible near search bar
+
+---
+
+## Iteration 17 — Filter Panel (Search Mode Sidebar)
+
+**Goal:** When in search mode, the sidebar shows faceted filters for narrowing results by type, tags, and source. Clicking a filter applies it without typing.
+
+### Tasks
+
+1. Implement filter panel template `parts/filter-panel.hbs`:
+   - **File type section:** Checkboxes for each type (Image, Video, Audio, PDF). Counts next to each showing how many index entries match.
+   - **Source section:** Collapsible groups — current world, modules (list active), systems, assets. Checkboxes per source with counts.
+   - **Tags section:** Show most-used tags (top 20–30) as clickable chips. Clicking a tag adds `[tag:value]` to the search bar.
+   - "Clear all filters" button at top
+
+2. Implement sidebar mode switching:
+   - In browse mode: sidebar shows folder tree (existing)
+   - In search mode: sidebar shows filter panel (new)
+   - Transition occurs automatically when switching browse↔search
+
+3. Wire filters to search:
+   - Checking/unchecking a type filter → update the search bar with `[type:...]` operators and re-run search
+   - Checking/unchecking a source filter → same with `[source:...]`
+   - Clicking a tag chip → append `[tag:value]` to search bar and re-run
+   - The search bar is always the source of truth — filters write to it, search reads from it
+   - Active filters shown as dismissible chips above content area (read from search bar operators)
+
+4. Compute facet counts:
+   - After search results are computed, count how many results per type/source/tag
+   - Update filter panel counts dynamically
+   - Types/sources with 0 results are greyed out but still visible
+
+### Verification
+
+- [ ] Switching to search mode replaces folder tree with filter panel in sidebar
+- [ ] Switching back to browse mode restores folder tree
+- [ ] File type checkboxes show counts matching the full index
+- [ ] Checking "Image" filter adds `[type:image]` to search bar and narrows results
+- [ ] Unchecking removes the operator and broadens results
+- [ ] Source section lists active modules, systems, world, assets
+- [ ] Clicking a tag chip adds `[tag:value]` to search bar
+- [ ] "Clear all filters" removes all operators from search bar
+- [ ] Active filters display as dismissible chips above content
+- [ ] Dismissing a chip removes the corresponding operator and re-runs search
+- [ ] Facet counts update dynamically after each search
+- [ ] Zero-count types/sources are greyed out
+- [ ] Combining filter panel clicks with typed free text works correctly
+
+---
+
+## Iteration 18 — Audio/Video Playback in Detail Panel
+
+**Goal:** Selecting an audio or video file shows playback controls in the detail panel with play/pause/seek functionality.
+
+### Tasks
+
+1. Update detail panel preview rendering:
+   - **Audio files:** Render a styled `<audio>` element with native controls. Add:
+     - Play/pause button (large, centered)
+     - Seek bar (native or custom)
+     - Duration display
+     - Volume control
+     - File type icon above controls as visual placeholder
+   - **Video files:** Render a `<video>` element with native controls. Add:
+     - `preload="metadata"` to load duration/dimensions without downloading full file
+     - Poster frame: first frame rendered by browser
+     - Play/pause, seek, volume, fullscreen controls (native)
+     - Constrain video to detail panel dimensions with `object-fit: contain`
+
+2. Handle media lifecycle:
+   - Stop playback when selecting a different file
+   - Stop playback when closing the Hub/picker
+   - Stop playback when switching from search to browse mode (or vice versa)
+   - Clean up media elements on `_tearDown` or `close`
+
+3. Display media metadata in detail panel:
+   - Audio: duration, file size
+   - Video: duration, dimensions, file size
+   - Read from `<audio>`/`<video>` element's `loadedmetadata` event
+
+4. CSS for media controls:
+   - Audio player: centered in preview area, full width
+   - Video player: aspect-ratio-preserving container
+   - Consistent styling with the rest of the detail panel
+
+### Verification
+
+- [ ] Selecting an audio file shows an audio player in the detail panel
+- [ ] Audio plays, pauses, seeks correctly
+- [ ] Selecting a video file shows a video player in the detail panel
+- [ ] Video plays inline with controls
+- [ ] Switching to a different file stops the previous playback
+- [ ] Closing the Hub stops any active playback
+- [ ] Duration and file metadata display in the detail panel
+- [ ] Video respects aspect ratio within the panel bounds
+- [ ] No errors with unsupported formats (graceful fallback to type icon)
+- [ ] Media elements are cleaned up properly (no orphaned audio playing after close)
+
+---
+
+## Iteration 19 — Font Awesome Icon Search
+
+**Goal:** Font Awesome Free icons are searchable and selectable. Integrates with the index and search engine.
+
+### Tasks
+
+1. Prepare Font Awesome metadata:
+   - Download `@fortawesome/fontawesome-free` npm package
+   - Extract `metadata/icons.json`
+   - Create a trimmed version at `data/fa-icons.json` containing only:
+     ```javascript
+     {
+       "<icon-name>": {
+         "search": { "terms": ["alias1", "alias2", ...] },
+         "styles": ["solid", "regular"],  // which styles are free
+         "unicode": "f0e7"
+       }
+     }
+     ```
+   - Include this file in the module (ship with module, ~100-150KB trimmed)
+
+2. Build Font Awesome index entries:
+   - In `IndexManager`, when `indexFontAwesome` is enabled:
+     - Load `fa-icons.json`
+     - Create `IndexEntry` objects for each icon:
+       ```javascript
+       {
+         path: "fa-solid fa-<name>",  // CSS class string as "path"
+         name: "<name>",
+         type: "icon",
+         source: "fontawesome",
+         autoTags: ["icon", "fontawesome", ...searchTerms],
+         userTags: [],
+         indexedAt: Date.now()
+       }
+       ```
+   - Add to index alongside file entries
+   - Add to haystack
+
+3. Update display for icon entries:
+   - In grid view: render the icon glyph at large size (use the FA class directly)
+   - In list view: render icon glyph in the thumbnail column
+   - Detail panel preview: large centered icon glyph + icon name + CSS class + unicode value
+   - "Copy Class" button instead of "Copy URL" for icon entries
+
+4. Update picker selection for icons:
+   - When confirming an icon selection in picker mode:
+     - Return the CSS class string (e.g., `"fa-solid fa-dragon"`) as the selected path
+     - This works for icon picker fields but may not work for image fields — test and handle gracefully
+   - In hub mode: "Copy Class" copies the CSS class string
+
+5. Add `[type:icon]` filter support:
+   - Already handled by Iteration 16's type filter — just need icon entries in the index
+
+### Verification
+
+- [ ] With Font Awesome indexing enabled, icons appear in search results for relevant queries
+- [ ] `[type:icon]` filter returns only Font Awesome icons
+- [ ] Searching "dragon" returns the `fa-dragon` icon (among other results)
+- [ ] Searching "arrow" returns multiple arrow-related icons
+- [ ] Icon grid view shows the actual icon glyphs (not broken images)
+- [ ] Icon detail panel shows large glyph, name, CSS class, and unicode value
+- [ ] "Copy Class" button copies `"fa-solid fa-dragon"` to clipboard
+- [ ] In picker mode, selecting an icon returns the CSS class string
+- [ ] Icons don't appear when `indexFontAwesome` is disabled in scan locations
+- [ ] Icon entries don't break file-based searches or filters
+- [ ] FA metadata file loads without errors
+
+---
+
+## Iteration 20 — Detached Window Mode
+
+**Goal:** The Hub can be popped out into a separate browser window for multi-monitor setups, using ApplicationV2's native `detachWindow()` / `attachWindow()`.
+
+### Tasks
+
+1. Add detach/attach button to the toolbar:
+   - Icon button: `fa-solid fa-up-right-from-square` (detach) / `fa-solid fa-down-left-and-up-right-to-center` (attach)
+   - Clicking toggles between detached and attached state
+   - Uses `this.detachWindow()` and `this.attachWindow()` from ApplicationV2
+
+2. Persist detached preference:
+   - Read `detachedMode` setting on Hub open
+   - If `true`, auto-detach after initial render
+   - On manual detach/attach, update the setting
+
+3. Handle detach lifecycle:
+   - Detaching should preserve:
+     - Current browse path
+     - Search query and results
+     - Selected file and detail panel state
+     - View mode (grid/list)
+   - After detach, the Hub renders in a new browser window
+   - After attach, it returns to the main Foundry window
+
+4. CSS considerations:
+   - Ensure styles are loaded in the detached window
+   - Foundry's CSS variables may not be available in a detached window — provide fallbacks
+   - Test scrolling, resizing, and layout in detached state
+
+5. Handle picker mode:
+   - Picker mode should NOT auto-detach (it's modal and needs to return a value)
+   - Detach button can still be available in picker mode for manual use
+   - Confirm selection in detached picker should close the detached window and call the callback
+
+### Verification
+
+- [ ] Detach button visible in toolbar
+- [ ] Clicking detach opens the Hub in a new browser window
+- [ ] Hub content is fully functional in the detached window (browse, search, preview)
+- [ ] Clicking attach returns the Hub to the main Foundry window
+- [ ] State is preserved across detach/attach (browse path, search query, selected file)
+- [ ] `detachedMode` setting auto-detaches on Hub open when enabled
+- [ ] Picker mode does NOT auto-detach
+- [ ] File selection in detached picker mode calls the callback and closes correctly
+- [ ] CSS renders correctly in detached window (no broken layout or missing styles)
+- [ ] Closing the detached window (browser close/X) properly cleans up the application
+
+---
+
+## Iteration 21 — Right-Click Context Menu
+
+**Goal:** Right-clicking a file in the content area shows a context menu with common actions.
+
+### Tasks
+
+1. Implement context menu using Foundry's `ContextMenu` class:
+   - Register on file items in both grid and list views
+   - Menu items:
+
+   | Action | Icon | Available | Description |
+   |---|---|---|---|
+   | Copy URL | `fa-solid fa-link` | Always | Copy file path to clipboard |
+   | Copy Filename | `fa-solid fa-copy` | Always | Copy just the filename |
+   | Open in New Tab | `fa-solid fa-arrow-up-right-from-square` | Always | Open file URL in new browser tab |
+   | Show in Folder | `fa-solid fa-folder-open` | Search mode | Switch to browse mode at the file's directory |
+   | Add Tag | `fa-solid fa-tag` | Hub mode (GM) | Open tag input dialog |
+   | Select | `fa-solid fa-check` | Picker mode | Confirm selection |
+
+2. Implement "Show in Folder":
+   - Only shown when in search mode
+   - Extracts directory path from the file's full path
+   - Clears search, switches to browse mode, navigates to that directory
+   - Highlights the file in the directory listing
+
+3. Implement "Add Tag" quick action:
+   - Opens a small dialog (DialogV2) with a text input for tag(s)
+   - Adds tags to the file's userTags (same logic as detail panel)
+   - Shortcut for tagging without opening the detail panel
+
+4. Implement "Open in New Tab":
+   - `window.open(filePath, "_blank")`
+   - Only for file entries, not Font Awesome icons
+
+5. Context menu for folders:
+   - Simplified menu: only "Open" (navigate into) and "Copy Path"
+
+### Verification
+
+- [ ] Right-clicking a file in grid view shows the context menu
+- [ ] Right-clicking a file in list view shows the context menu
+- [ ] "Copy URL" copies the full path to clipboard
+- [ ] "Copy Filename" copies just the filename
+- [ ] "Open in New Tab" opens the file in a new browser tab
+- [ ] "Show in Folder" switches from search to browse and navigates to the file's directory
+- [ ] "Add Tag" opens a dialog and successfully adds tags
+- [ ] "Select" appears only in picker mode and confirms selection
+- [ ] Context menu on a folder shows reduced options
+- [ ] Context menu on a Font Awesome icon shows "Copy Class" instead of "Copy URL"
+- [ ] Menu closes on click outside or Escape key
+- [ ] No errors when right-clicking various file types
+
+---
+
+## Iteration 22 — Incremental Index Updates
+
+**Goal:** When files are uploaded or deleted during a session, the index updates automatically without requiring a full rebuild.
+
+### Tasks
+
+1. Hook into Foundry upload events:
+   - Listen for file upload completion. Possible hooks/events:
+     - `FilePicker.upload()` returns a promise — can we hook after it resolves?
+     - Check for a `"uploadFile"` or similar hook in v13
+     - If no direct hook exists, monkey-patch `FilePicker.upload()` to emit a custom hook after success
+   - On upload detected:
+     - Create an `IndexEntry` for the new file
+     - Run `AutoTagger.generateTags()` on it
+     - Add to index via `IndexManager.addEntries()`
+     - Update haystack in-place
+     - Save index to disk (debounced — batch rapid uploads)
+
+2. Handle file deletion:
+   - Foundry doesn't have a file deletion API in FilePicker — files are managed at the OS level
+   - Stale detection: during browse, if a previously indexed file is not found in `FilePicker.browse()` results, mark it for removal
+   - Lazy cleanup: periodically (or on next rebuild) remove entries for files that no longer exist
+   - Don't block on this — stale entries in search results are a minor inconvenience, not a blocker
+
+3. Handle directory creation:
+   - When `FilePicker.createDirectory()` is called, no index action needed (directories aren't indexed)
+   - But the sidebar folder tree should update — trigger a sidebar re-render if the tree is visible
+
+4. Debounced save:
+   - Multiple rapid uploads (e.g., batch upload) should not trigger individual saves
+   - Debounce `IndexStore.save()` with a 2-second delay
+   - Ensure save fires on window unload if there are unsaved changes
+
+5. Update UI reactively:
+   - If the Hub is open during an upload, the new file should appear in:
+     - Browse mode (if viewing the upload directory) — re-browse the current directory
+     - Search results (if the file matches the current query) — re-run search
+
+### Verification
+
+- [ ] Upload a file via Foundry's upload button → file appears in the index within seconds
+- [ ] `game.assetVault.index.getEntry("path/to/uploaded/file.webp")` returns the new entry
+- [ ] New file has auto-tags generated correctly
+- [ ] Search finds the newly uploaded file immediately
+- [ ] Batch upload (multiple files) only triggers one index save (debounced)
+- [ ] If the Hub is open in browse mode at the upload directory, new file appears after upload
+- [ ] If the Hub is open in search mode, re-searching finds the new file
+- [ ] No errors during upload process
+- [ ] Index file on disk reflects the new entries after save
+- [ ] Stale entries (deleted files) don't cause errors in search or browse
+
+---
+
+## Iteration 23 — Drag-and-Drop from Hub
+
+**Goal:** Files can be dragged from the Hub's content area into Foundry's rich text editors (journals, item descriptions, character notes) and onto the canvas.
+
+### Tasks
+
+1. Make file items draggable:
+   - Add `draggable="true"` to file items in grid and list views
+   - Only in hub mode (not picker mode — picker uses click-to-select)
+   - Set up `dragstart` event handler on file items
+
+2. Implement drag data format:
+   - For images dropped onto **rich text editors** (ProseMirror/TinyMCE):
+     ```javascript
+     event.dataTransfer.setData("text/plain", filePath);
+     event.dataTransfer.setData("text/html", `<img src="${filePath}" />`);
+     ```
+   - For images dropped onto the **canvas** (creates a Tile):
+     ```javascript
+     event.dataTransfer.setData("application/json", JSON.stringify({
+       type: "Tile",
+       texture: { src: filePath }
+     }));
+     ```
+   - For audio dropped onto the **canvas** (creates an AmbientSound):
+     ```javascript
+     event.dataTransfer.setData("application/json", JSON.stringify({
+       type: "AmbientSound",
+       path: filePath
+     }));
+     ```
+   - Set all applicable formats simultaneously — the drop target picks the one it understands
+
+3. Implement drag preview:
+   - For images: use the thumbnail as the drag ghost image
+   - For non-images: use the type icon
+   - `event.dataTransfer.setDragImage(element, offsetX, offsetY)`
+
+4. Handle drop targets:
+   - Foundry's ProseMirror editor should accept `text/html` drops natively
+   - Canvas drop: Foundry's canvas drop handler reads `application/json` — verify the data format matches what Foundry expects for Tile and AmbientSound creation
+   - Test with: Journal page editor, Item description editor, Actor biography field
+
+5. Disable drag in picker mode:
+   - Picker mode files should NOT be draggable (prevents confusion with click-to-select)
+   - Remove `draggable` attribute when `mode === "picker"`
+
+6. Visual feedback:
+   - Add drag-active CSS class on the file item during drag
+   - Add a subtle "drag hint" indicator on hover in hub mode (e.g., grip icon)
+
+### Verification
+
+- [ ] Files in hub mode are draggable (cursor changes on hover)
+- [ ] Files in picker mode are NOT draggable
+- [ ] Dragging an image into a Journal page editor inserts the image
+- [ ] Dragging an image into an Item description field inserts the image
+- [ ] Dragging an image onto the canvas creates a Tile at the drop position
+- [ ] Dragging an audio file onto the canvas creates an AmbientSound
+- [ ] Drag ghost image shows the file thumbnail (or type icon for non-images)
+- [ ] Drag does not interfere with click-to-select or detail panel behavior
+- [ ] Dragging a Font Awesome icon does not crash (graceful no-op or copies class string)
+- [ ] Multiple rapid drags don't cause errors
+- [ ] Drop into ProseMirror editors works (Foundry v13's default rich text editor)
+
+---
+
+## Iteration 24 — Phase 2 Integration Testing & Polish
+
+**Goal:** End-to-end verification of all Phase 2 features. Fix bugs, ensure features work together.
+
+### Tasks
+
+1. **Tag workflow testing:**
+   - Add tags to files → search by tags → verify results
+   - Remove tags → verify they disappear from search
+   - Add tags via detail panel and via right-click context menu
+   - Verify tags persist across world reloads
+
+2. **Advanced search + filter panel integration:**
+   - Use filter panel to set type → verify search bar updates with operator
+   - Type free text while filters are active → verify combined results
+   - Click tag chip in filter panel → verify added to search bar
+   - Clear all filters → verify everything resets
+   - Dismiss individual filter chips → verify correct operator removed
+
+3. **Media playback testing:**
+   - Play audio → select different file → verify first audio stops
+   - Play video → close Hub → verify video stops
+   - Play audio in detached window → verify works
+
+4. **Font Awesome integration:**
+   - Search for icons alongside files → mixed results display correctly
+   - Filter to `[type:icon]` → only icons shown
+   - Select icon in picker mode where calling context expects an icon → works
+   - Select icon in picker mode where calling context expects an image → verify graceful handling
+
+5. **Drag-and-drop integration:**
+   - Drag from Hub while picker is also open → verify no interference
+   - Drag image into journal → verify inline image renders
+   - Drag into different journal page types (text, image)
+
+6. **Incremental index testing:**
+   - Upload file while Hub is open in search mode → re-search finds it
+   - Upload while Hub is closed → reopen, search finds it
+   - Upload batch of files → index updated, single save
+
+7. **Detached window testing:**
+   - All features work in detached mode: browse, search, filter, tags, playback, drag
+   - Detach with search active → search persists
+   - Attach back → state preserved
+
+### Verification
+
+- [ ] Tags: add → search → find → remove → search → not found — full cycle works
+- [ ] Advanced search: `[type:image] [tag:boss] dragon` returns correct filtered fuzzy results
+- [ ] Filter panel and search bar stay in sync bidirectionally
+- [ ] Audio/video playback stops on file change, Hub close, and mode switch
+- [ ] Font Awesome icons display correctly in grid, list, and detail panel
+- [ ] Drag-and-drop inserts images into journals and creates tiles on canvas
+- [ ] Incremental uploads appear in index without full rebuild
+- [ ] Detached window mode preserves all functionality
+- [ ] Right-click context menu works on all item types (files, folders, icons)
+- [ ] No console errors across all Phase 2 features
+- [ ] Performance: search with filters still under 100ms for typical queries
+
+---
+
+## Post-Phase 2 — What Comes Next
+
+Once all Phase 2 iterations pass verification, the module is a full-featured media hub.
 
 **Phase 3 priorities:**
 1. Player access with restricted mode
 2. Cross-world scanning
-3. Virtual scrolling for large result sets
-4. Extensibility API
+3. Virtual scrolling for large result sets (10,000+ files)
+4. Extensibility API (custom search providers, tag API for other modules)
+5. Localization support
 
 ---
 
-*Plan version: 1.1*
+*Plan version: 2.0*
 *Companion document: DESIGN.md (Asset Vault Design Guidelines v1.1)*
