@@ -73,6 +73,7 @@ export class ScanLocationsConfig extends HandlebarsApplicationMixin(ApplicationV
       systems,
       indexActiveModules: get("indexActiveModules", true),
       indexGlobalAssets: get("assets", true),
+      indexFontAwesome: get("indexFontAwesome", false),
       otherWorlds,
       otherFolders,
       isRebuilding: game.assetVault?.index?.status === "building",

@@ -8,7 +8,7 @@
  */
 
 const OPERATORS  = ["type", "tag", "source", "ext"];
-const TYPE_VALUES = ["image", "video", "audio", "pdf"];
+const TYPE_VALUES = ["image", "video", "audio", "pdf", "icon"];
 
 export class SearchAutocomplete {
   /* --- persistent state -------------------------------------------- */

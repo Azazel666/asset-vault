@@ -1279,17 +1279,17 @@ Autocomplete dropdown + inline filter chips were added on top of the core search
 
 ### Verification
 
-- [ ] With Font Awesome indexing enabled, icons appear in search results for relevant queries
-- [ ] `[type:icon]` filter returns only Font Awesome icons
-- [ ] Searching "dragon" returns the `fa-dragon` icon (among other results)
-- [ ] Searching "arrow" returns multiple arrow-related icons
-- [ ] Icon grid view shows the actual icon glyphs (not broken images)
-- [ ] Icon detail panel shows large glyph, name, CSS class, and unicode value
-- [ ] "Copy Class" button copies `"fa-solid fa-dragon"` to clipboard
-- [ ] In picker mode, selecting an icon returns the CSS class string
-- [ ] Icons don't appear when `indexFontAwesome` is disabled in scan locations
-- [ ] Icon entries don't break file-based searches or filters
-- [ ] FA metadata file loads without errors
+- [X] With Font Awesome indexing enabled, icons appear in search results for relevant queries
+- [X] `[type:icon]` filter returns only Font Awesome icons
+- [X] Searching "dragon" returns the `fa-dragon` icon (among other results)
+- [X] Searching "arrow" returns multiple arrow-related icons
+- [X] Icon grid view shows the actual icon glyphs (not broken images)
+- [X] Icon detail panel shows large glyph, name, CSS class, and unicode value
+- [X] "Copy Class" button copies `"fa-solid fa-dragon"` to clipboard
+- ~~[ ] In picker mode, selecting an icon returns the CSS class string~~
+- [X] Icons don't appear when `indexFontAwesome` is disabled in scan locations
+- [X] Icon entries don't break file-based searches or filters
+- [X] FA metadata file loads without errors
 
 ---
 

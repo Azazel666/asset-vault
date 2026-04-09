@@ -10,13 +10,16 @@
       data-action="selectFile"
       data-path="{{path}}"
       data-name="{{name}}"
+      data-is-icon="{{isIcon}}"
       data-is-image="{{isImage}}"
       data-is-video="{{isVideo}}"
       data-is-audio="{{isAudio}}"
       data-is-pdf="{{isPdf}}"
       data-file-type="{{fileType}}"
       title="{{name}}">
-      {{#if isImage}}
+      {{#if isIcon}}
+      <i class="{{path}} av-item-icon av-item-icon--fa"></i>
+      {{else if isImage}}
       <img class="av-thumb" src="{{path}}" loading="lazy" alt="{{name}}" />
       {{else if isVideo}}
       <i class="fa-solid fa-file-video av-item-icon"></i>

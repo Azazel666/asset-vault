@@ -428,6 +428,18 @@
   color: var(--color-text-light-6, #888);
 }
 
+.av-detail-icon-glyph {
+  font-size: 5rem;
+  color: var(--color-text-primary, #c9c7b8);
+  line-height: 1;
+}
+
+.av-detail-unicode {
+  color: var(--color-text-light-6, #888);
+  font-size: 0.75rem;
+  font-family: monospace;
+}
+
 .av-detail-meta {
   flex-shrink: 0;
   overflow: hidden;
@@ -651,6 +663,10 @@
   color: var(--color-level-warning, #c90);
 }
 
+.av-items[data-view="grid"] .av-item-icon--fa {
+  color: var(--color-text-primary, #c9c7b8);
+}
+
 .av-items[data-view="grid"] .av-item-type {
   display: none;
 }
@@ -690,6 +706,10 @@
 
 .av-items[data-view="list"] .av-item-dir .av-item-icon {
   color: var(--color-level-warning, #c90);
+}
+
+.av-items[data-view="list"] .av-item-icon--fa {
+  color: var(--color-text-primary, #c9c7b8);
 }
 
 .av-items[data-view="list"] .av-item-name {

@@ -1,6 +1,8 @@
 {{#if selectedFile}}
 <div class="av-detail-preview-area">
-  {{#if selectedFile.isImage}}
+  {{#if selectedFile.isIcon}}
+  <i class="{{selectedFile.path}} av-detail-icon-glyph"></i>
+  {{else if selectedFile.isImage}}
   <img class="av-detail-img" src="{{selectedFile.path}}" alt="{{selectedFile.name}}" />
   {{else if selectedFile.isVideo}}
   <video class="av-detail-video" src="{{selectedFile.path}}" controls preload="metadata"></video>
@@ -16,13 +18,20 @@
   <div class="av-detail-filename" title="{{selectedFile.name}}">{{selectedFile.name}}</div>
   <div class="av-detail-path" title="{{selectedFile.path}}">{{selectedFile.path}}</div>
   <div class="av-detail-filetype">{{selectedFile.fileType}}</div>
+  {{#if selectedFile.unicode}}<div class="av-detail-unicode">U+{{selectedFile.unicode}}</div>{{/if}}
   {{#if selectedFile.isAudio}}<div class="av-detail-media-meta"></div>{{/if}}
   {{#if selectedFile.isVideo}}<div class="av-detail-media-meta"></div>{{/if}}
 </div>
 <div class="av-detail-actions">
+  {{#if selectedFile.isIcon}}
+  <button type="button" class="av-copy-btn" data-action="copyClass">
+    <i class="fa-solid fa-copy"></i> {{localize "asset-vault.actions.copyClass"}}
+  </button>
+  {{else}}
   <button type="button" class="av-copy-btn" data-action="copyUrl">
     <i class="fa-solid fa-copy"></i> {{localize "asset-vault.actions.copyUrl"}}
   </button>
+  {{/if}}
 </div>
 <div class="av-detail-tags">
   {{#if showAutoTags}}

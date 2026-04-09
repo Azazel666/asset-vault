@@ -38,6 +38,14 @@
     </label>
   </section>
 
+  <section class="avsl-section">
+    <h3 class="avsl-section-header">{{localize "asset-vault.scanLocations.fontAwesome"}}</h3>
+    <label class="avsl-item">
+      <input type="checkbox" name="indexFontAwesome" {{#if indexFontAwesome}}checked{{/if}} />
+      <span class="avsl-item-name">{{localize "asset-vault.scanLocations.indexFontAwesome"}}</span>
+    </label>
+  </section>
+
   {{#if otherWorlds.length}}
   <section class="avsl-section">
     <h3 class="avsl-section-header">{{localize "asset-vault.scanLocations.otherWorlds"}}</h3>

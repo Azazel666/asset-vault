@@ -29,7 +29,9 @@
 
   "asset-vault.actions.select": "Select",
   "asset-vault.actions.copyUrl": "Copy URL",
+  "asset-vault.actions.copyClass": "Copy Class",
   "asset-vault.notifications.copiedUrl": "Copied: {path}",
+  "asset-vault.notifications.copiedClass": "Copied class: {name}",
 
   "asset-vault.search.placeholder": "Search assets…",
   "asset-vault.search.clear": "Clear search",
@@ -63,6 +65,7 @@
   "asset-vault.content.typeAudio": "Audio",
   "asset-vault.content.typePdf": "PDF",
   "asset-vault.content.typeFile": "File",
+  "asset-vault.content.typeIcon": "Icon",
   "asset-vault.detail.placeholder": "Select an asset to see details",
   "asset-vault.detail.duration": "Duration",
   "asset-vault.detail.dimensions": "Dimensions",
@@ -82,6 +85,8 @@
 
   "asset-vault.scanLocations.indexActiveModules": "Index all active modules",
   "asset-vault.scanLocations.indexGlobalAssets": "Index assets/ folder",
+  "asset-vault.scanLocations.fontAwesome": "Font Awesome Icons",
+  "asset-vault.scanLocations.indexFontAwesome": "Index Font Awesome Free icons (1,970 icons)",
 
   "asset-vault.scanLocations.always": "Always",
   "asset-vault.scanLocations.active": "Active",

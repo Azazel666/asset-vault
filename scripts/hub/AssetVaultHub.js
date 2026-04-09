@@ -55,6 +55,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       selectFile: AssetVaultHub.#onSelectFile,
       confirmSelection: AssetVaultHub.#onConfirmSelection,
       copyUrl: AssetVaultHub.#onCopyUrl,
+      copyClass: AssetVaultHub.#onCopyClass,
       addTag: AssetVaultHub.#onAddTag,
       removeTag: AssetVaultHub.#onRemoveTag,
       removeSearchFilter: AssetVaultHub.#onRemoveSearchFilter,
@@ -108,15 +109,16 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
           ? rawEntries.filter(e => extensions.some(ext => e.path.toLowerCase().endsWith(ext)))
           : rawEntries;
         files = filteredEntries.map(entry => {
+            const isIcon = entry.type === "icon";
             const isImage = entry.type === "image";
             const isVideo = entry.type === "video";
             const isAudio = entry.type === "audio";
             const isPdf = entry.type === "pdf";
-            const fileType = game.i18n.localize(isImage ? "asset-vault.content.typeImage" : isVideo ? "asset-vault.content.typeVideo" : isAudio ? "asset-vault.content.typeAudio" : isPdf ? "asset-vault.content.typePdf" : "asset-vault.content.typeFile");
+            const fileType = game.i18n.localize(isIcon ? "asset-vault.content.typeIcon" : isImage ? "asset-vault.content.typeImage" : isVideo ? "asset-vault.content.typeVideo" : isAudio ? "asset-vault.content.typeAudio" : isPdf ? "asset-vault.content.typePdf" : "asset-vault.content.typeFile");
             return {
               name: entry.name,
               path: entry.path,
-              isImage, isVideo, isAudio, isPdf, fileType,
+              isIcon, isImage, isVideo, isAudio, isPdf, fileType,
               isSelected: this.selectedFile?.path === entry.path
             };
           });
@@ -175,7 +177,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       selectedFileCtx = {
         ...this.selectedFile,
         autoTags: entry?.autoTags ?? [],
-        userTags: entry?.userTags ?? []
+        userTags: entry?.userTags ?? [],
+        unicode: entry?.meta?.unicode ?? null
       };
     }
 
@@ -411,6 +414,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       path: el.dataset.path,
       name: el.dataset.name,
+      isIcon: el.dataset.isIcon === "true",
       isImage: el.dataset.isImage === "true",
       isVideo: el.dataset.isVideo === "true",
       isAudio: el.dataset.isAudio === "true",
@@ -439,7 +443,9 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
     let previewHtml;
-    if (f.isImage) {
+    if (f.isIcon) {
+      previewHtml = `<i class="${esc(f.path)} av-detail-icon-glyph"></i>`;
+    } else if (f.isImage) {
       previewHtml = `<img class="av-detail-img" src="${esc(f.path)}" alt="${esc(f.name)}" />`;
     } else if (f.isVideo) {
       previewHtml = `<video class="av-detail-video" src="${esc(f.path)}" controls preload="metadata"></video>`;
@@ -454,19 +460,30 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       ? `<div class="av-detail-media-meta"></div>`
       : "";
 
+    let unicodeLine = "";
+    if (f.isIcon) {
+      const entry = game.assetVault?.index?.getEntry(f.path);
+      const uni = entry?.meta?.unicode;
+      if (uni) unicodeLine = `<div class="av-detail-unicode">U+${uni.toUpperCase()}</div>`;
+    }
+
+    const actionBtn = f.isIcon
+      ? `<button type="button" class="av-copy-btn" data-action="copyClass">
+           <i class="fa-solid fa-copy"></i> ${game.i18n.localize("asset-vault.actions.copyClass")}
+         </button>`
+      : `<button type="button" class="av-copy-btn" data-action="copyUrl">
+           <i class="fa-solid fa-copy"></i> ${game.i18n.localize("asset-vault.actions.copyUrl")}
+         </button>`;
+
     panel.innerHTML = `
       <div class="av-detail-preview-area">${previewHtml}</div>
       <div class="av-detail-meta">
         <div class="av-detail-filename" title="${esc(f.name)}">${esc(f.name)}</div>
         <div class="av-detail-path" title="${esc(f.path)}">${esc(f.path)}</div>
         <div class="av-detail-filetype">${esc(f.fileType)}</div>
-        ${mediaMeta}
+        ${unicodeLine}${mediaMeta}
       </div>
-      <div class="av-detail-actions">
-        <button type="button" class="av-copy-btn" data-action="copyUrl">
-          <i class="fa-solid fa-copy"></i> ${game.i18n.localize("asset-vault.actions.copyUrl")}
-        </button>
-      </div>
+      <div class="av-detail-actions">${actionBtn}</div>
       ${this.#buildTagsHtml(f)}
     `;
     panel.removeAttribute("hidden");
@@ -660,6 +677,14 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     );
   }
 
+  static async #onCopyClass() {
+    if (!this.selectedFile) return;
+    await navigator.clipboard.writeText(this.selectedFile.path);
+    ui.notifications.info(
+      game.i18n.format("asset-vault.notifications.copiedClass", { name: this.selectedFile.name })
+    );
+  }
+
   static async #onAddTag() {
     const input = this.element?.querySelector(".av-tag-input");
     if (!input) return;
@@ -726,7 +751,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #computeSearchFacets(entries) {
-    const typeCounts = new Map([["image", 0], ["video", 0], ["audio", 0], ["pdf", 0]]);
+    const typeCounts = new Map([["image", 0], ["video", 0], ["audio", 0], ["pdf", 0], ["icon", 0]]);
     const sourceMap  = new Map();
     const tagMap     = new Map();
 
@@ -744,9 +769,10 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       image: "asset-vault.content.typeImage",
       video: "asset-vault.content.typeVideo",
       audio: "asset-vault.content.typeAudio",
-      pdf:   "asset-vault.content.typePdf"
+      pdf:   "asset-vault.content.typePdf",
+      icon:  "asset-vault.content.typeIcon"
     };
-    const types = ["image", "video", "audio", "pdf"]
+    const types = ["image", "video", "audio", "pdf", "icon"]
       .filter(t => typeCounts.get(t) > 0)
       .map(t => ({
         key:    t,

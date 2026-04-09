@@ -82,6 +82,14 @@ export class IndexManager {
         })
       );
 
+      // Add Font Awesome icon entries if enabled
+      const rawSetting = game.settings.get("asset-vault", "scanLocations");
+      const locSetting = (rawSetting && typeof rawSetting === "object") ? rawSetting : {};
+      if (locSetting.indexFontAwesome) {
+        const faEntries = await this.#buildFontAwesomeEntries(savedUserTags);
+        entries.push(...faEntries);
+      }
+
       this.#store.clear();
       this.#store.addEntries(entries);
       await this.#store.save();
@@ -95,6 +103,46 @@ export class IndexManager {
       console.error("Asset Vault | IndexManager.rebuild failed:", err);
       this.status = "error";
       Hooks.callAll("assetVault.indexStatus", "error");
+    }
+  }
+
+  /* -------------------------------------------- */
+  /*  Font Awesome icon builder                   */
+  /* -------------------------------------------- */
+
+  /**
+   * Load the trimmed FA icon metadata and create IndexEntry objects.
+   * @param {Map<string,string[]>} savedUserTags
+   * @returns {Promise<import("./IndexEntry.js").IndexEntry[]>}
+   */
+  async #buildFontAwesomeEntries(savedUserTags) {
+    try {
+      const response = await fetch("/modules/asset-vault/data/fa-icons.json");
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const icons = await response.json();
+      const entries = [];
+      for (const [name, data] of Object.entries(icons)) {
+        const primaryStyle = data.styles.includes("solid") ? "solid"
+          : data.styles.includes("regular") ? "regular"
+          : data.styles[0];
+        const prefix = primaryStyle === "brands" ? "fa-brands"
+          : primaryStyle === "regular" ? "fa-regular"
+          : "fa-solid";
+        const path = `${prefix} fa-${name}`;
+        entries.push(createEntry(path, {
+          name,
+          type: "icon",
+          source: "fontawesome",
+          autoTags: ["icon", "fontawesome", ...data.terms],
+          userTags: savedUserTags.get(path) ?? [],
+          meta: { unicode: data.unicode, label: data.label }
+        }));
+      }
+      console.log(`Asset Vault | Loaded ${entries.length} Font Awesome icon entries`);
+      return entries;
+    } catch(err) {
+      console.error("Asset Vault | Failed to load Font Awesome icons:", err);
+      return [];
     }
   }
 
