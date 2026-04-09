@@ -1328,18 +1328,26 @@ Autocomplete dropdown + inline filter chips were added on top of the core search
    - Detach button can still be available in picker mode for manual use
    - Confirm selection in detached picker should close the detached window and call the callback
 
+### Implementation Note
+
+`detachWindow()` / `attachWindow()` do not exist in Foundry v13's ApplicationV2. This feature is implemented using `window.open("about:blank")` + `document.adoptNode()` — the same approach used by the PopOut! community module. The Hub's DOM element is physically moved to the popup window; JS state remains in the parent context so all functionality continues to work. CSS is transferred by copying `<link>` and `<style>` elements plus computed CSS custom properties.
+
+Auto-detach on startup (from the `detachedMode` setting) requires a user gesture in strict browsers. It works in Foundry Desktop (Electron). If the popup is blocked, a warning notification is shown.
+
 ### Verification
 
-- [ ] Detach button visible in toolbar
-- [ ] Clicking detach opens the Hub in a new browser window
-- [ ] Hub content is fully functional in the detached window (browse, search, preview)
-- [ ] Clicking attach returns the Hub to the main Foundry window
-- [ ] State is preserved across detach/attach (browse path, search query, selected file)
-- [ ] `detachedMode` setting auto-detaches on Hub open when enabled
-- [ ] Picker mode does NOT auto-detach
-- [ ] File selection in detached picker mode calls the callback and closes correctly
-- [ ] CSS renders correctly in detached window (no broken layout or missing styles)
-- [ ] Closing the detached window (browser close/X) properly cleans up the application
+- [X] Detach button visible in toolbar
+- [X] Detach button icon/title updates to show "attach" state while detached, and reverts on attach
+- [X] Clicking detach opens the Hub in a new browser window
+- [X] Hub content is fully functional in the detached window (browse, search, select, copy URL, tags)
+- [X] Clicking attach returns the Hub to the main Foundry window
+- [X] State is preserved across detach/attach (browse path, search query, selected file)
+- [X] `detachedMode` setting is saved as `true` on detach and `false` on attach
+- [X] `detachedMode` setting auto-detaches on Hub open in Foundry Desktop (Electron)
+- ~~[ ] If popup is blocked by the browser, a warning notification is shown~~
+- [X] Picker mode does NOT auto-detach
+- [X] CSS renders correctly in detached window (layout intact, Foundry theme variables applied)
+- [X] Closing the detached window (OS window X button) properly closes the Hub and opens as detatched next time
 
 ---
 

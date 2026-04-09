@@ -53,6 +53,10 @@
       title="{{localize 'asset-vault.search.hintTitle'}}">
       <i class="fa-solid fa-circle-question"></i>
     </button>
+    <button type="button" class="av-view-btn av-detach-btn" data-action="detachWindow"
+      title="{{#if isDetached}}{{localize 'asset-vault.toolbar.attach'}}{{else}}{{localize 'asset-vault.toolbar.detach'}}{{/if}}">
+      <i class="fa-solid {{#if isDetached}}fa-down-left-and-up-right-to-center{{else}}fa-up-right-from-square{{/if}}"></i>
+    </button>
   </div>
 </div>
 <div class="av-search-hint" hidden>

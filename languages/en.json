@@ -52,6 +52,9 @@
 
   "asset-vault.nav.back": "Go up one level",
   "asset-vault.nav.toggleSidebar": "Toggle sidebar",
+  "asset-vault.toolbar.detach": "Pop out to separate window",
+  "asset-vault.toolbar.attach": "Return to main window",
+  "asset-vault.detach.popupBlocked": "Popup blocked — allow popups for this site to use detached mode.",
 
   "asset-vault.sidebar.sources": "Sources",
   "asset-vault.sidebar.folders": "Folders",

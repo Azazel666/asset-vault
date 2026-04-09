@@ -17,7 +17,13 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   #indexStatusHook = null;
   #autocomplete = null;
   #activeMedia = null;
+  #popoutWindow = null;
+  #isDetaching = false;
   selectedFile = null;
+
+  get #isDetached() {
+    return !!this.#popoutWindow && !this.#popoutWindow.closed;
+  }
 
   get #searchQuery() {
     const ops = this.#searchFilters.map(f => `[${f.key}:${f.value}]`).join(" ");
@@ -62,7 +68,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       toggleTypeFilter:   AssetVaultHub.#onToggleTypeFilter,
       toggleSourceFilter: AssetVaultHub.#onToggleSourceFilter,
       toggleTagFilter:    AssetVaultHub.#onToggleTagFilter,
-      clearAllFilters:    AssetVaultHub.#onClearAllFilters
+      clearAllFilters:    AssetVaultHub.#onClearAllFilters,
+      detachWindow:       AssetVaultHub.#onDetachWindow
     }
   };
 
@@ -185,6 +192,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       mode: this.mode,
       isPicker: this.mode === "picker",
+      isDetached: this.#isDetached,
       viewMode,
       isGrid: viewMode === "grid",
       isList: viewMode === "list",
@@ -226,8 +234,16 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   /*  Rendering                                   */
   /* -------------------------------------------- */
 
+  async _onFirstRender(context, options) {
+    // Auto-detach if the user previously chose detached mode (hub mode only)
+    if (this.mode === "hub" && game.settings.get("asset-vault", "detachedMode")) {
+      await this.#openDetachedWindow();
+    }
+  }
+
   _onRender(context, options) {
     super._onRender(context, options);
+    this.#updateDetachButton();
 
     // Register index status hook once — re-renders the hub when indexing starts/finishes
     if (!this.#indexStatusHook) {
@@ -356,6 +372,14 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#stopActiveMedia();
     this.#autocomplete?.destroy();
     this.#autocomplete = null;
+    // Close popup window when Hub is closed programmatically (e.g. picker confirmed)
+    if (this.#isDetached && !this.#isDetaching) {
+      this.#isDetaching = true;
+      const pop = this.#popoutWindow;
+      this.#popoutWindow = null;
+      try { pop.close(); } catch { /* ignore */ }
+      this.#isDetaching = false;
+    }
     return super.close(options);
   }
 
@@ -501,6 +525,133 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this.#activeMedia) return;
     this.#activeMedia.pause();
     this.#activeMedia = null;
+  }
+
+  /* -------------------------------------------- */
+  /*  Detached window                             */
+  /* -------------------------------------------- */
+
+  async #openDetachedWindow() {
+    if (this.#isDetached || !this.element) return;
+    const pos = this.position;
+    const w = Math.max(pos.width ?? 960, AssetVaultHub.#MIN_WIDTH);
+    const h = Math.max(pos.height ?? 640, AssetVaultHub.#MIN_HEIGHT);
+
+    const pop = window.open(
+      "about:blank", "asset-vault-popout",
+      `width=${w},height=${h},resizable=yes,scrollbars=no,location=no,menubar=no,toolbar=no,status=no`
+    );
+    if (!pop) {
+      ui.notifications.warn(game.i18n.localize("asset-vault.detach.popupBlocked"));
+      await game.settings.set("asset-vault", "detachedMode", false);
+      return;
+    }
+
+    this.#popoutWindow = pop;
+
+    // Write base HTML structure to popup
+    pop.document.open();
+    pop.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${this.title}</title></head><body style="margin:0;overflow:hidden"></body></html>`);
+    pop.document.close();
+
+    // Copy all stylesheets from parent window
+    for (const link of document.querySelectorAll("link[rel='stylesheet']")) {
+      const newLink = pop.document.createElement("link");
+      newLink.rel = "stylesheet";
+      newLink.href = link.href;
+      pop.document.head.appendChild(newLink);
+    }
+    for (const style of document.querySelectorAll("style")) {
+      const newStyle = pop.document.createElement("style");
+      newStyle.textContent = style.textContent;
+      pop.document.head.appendChild(newStyle);
+    }
+
+    // Copy CSS custom properties (Foundry theme variables) from parent
+    const htmlStyles = window.getComputedStyle(document.documentElement);
+    const bodyStyles = window.getComputedStyle(document.body);
+    let varCSS = ":root {";
+    for (const prop of htmlStyles) {
+      if (prop.startsWith("--")) varCSS += `${prop}:${htmlStyles.getPropertyValue(prop)};`;
+    }
+    varCSS += "} body {";
+    for (const prop of bodyStyles) {
+      if (prop.startsWith("--")) varCSS += `${prop}:${bodyStyles.getPropertyValue(prop)};`;
+    }
+    varCSS += "}";
+    const varStyle = pop.document.createElement("style");
+    varStyle.textContent = varCSS;
+    pop.document.head.appendChild(varStyle);
+
+    // Mirror body classes for theming
+    pop.document.body.className = document.body.className;
+
+    // Move the Hub element to the popup
+    const adopted = pop.document.adoptNode(this.element);
+    pop.document.body.appendChild(adopted);
+
+    // Resize to fill the popup window
+    this.setPosition({ left: 0, top: 0, width: w, height: h });
+    this.#updateDetachButton();
+
+    await game.settings.set("asset-vault", "detachedMode", true);
+
+    // When user closes the popup window with the OS X button
+    pop.addEventListener("beforeunload", () => {
+      if (this.#isDetaching) return;
+      this.#popoutWindow = null;
+      // Do NOT clear detachedMode here — the user closed the window but still
+      // wants detached mode next time they open the Hub.
+      this.close();
+    });
+  }
+
+  async #closeDetachedWindow() {
+    if (!this.#isDetached) return;
+    this.#isDetaching = true;
+    const pop = this.#popoutWindow;
+
+    // Move element back to main window
+    const adopted = document.adoptNode(this.element);
+    document.body.appendChild(adopted);
+
+    this.#popoutWindow = null;
+    try { pop.close(); } catch { /* ignore */ }
+    this.#isDetaching = false;
+
+    // Restore a sensible position
+    this.setPosition({
+      left: undefined,
+      top: undefined,
+      width: AssetVaultHub.DEFAULT_OPTIONS.position.width,
+      height: AssetVaultHub.DEFAULT_OPTIONS.position.height
+    });
+    this.bringToFront();
+    this.#updateDetachButton();
+
+    await game.settings.set("asset-vault", "detachedMode", false);
+  }
+
+  #updateDetachButton() {
+    const btn = this.element?.querySelector("[data-action='detachWindow']");
+    if (!btn) return;
+    const icon = btn.querySelector("i");
+    if (icon) {
+      icon.className = this.#isDetached
+        ? "fa-solid fa-down-left-and-up-right-to-center"
+        : "fa-solid fa-up-right-from-square";
+    }
+    btn.title = game.i18n.localize(
+      this.#isDetached ? "asset-vault.toolbar.attach" : "asset-vault.toolbar.detach"
+    );
+  }
+
+  static async #onDetachWindow() {
+    if (this.#isDetached) {
+      await this.#closeDetachedWindow();
+    } else {
+      await this.#openDetachedWindow();
+    }
   }
 
   #updateMediaMeta(el) {
