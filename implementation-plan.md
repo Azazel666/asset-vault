@@ -504,14 +504,14 @@
 
 ### Verification
 
-- [ ] Sidebar shows source tabs for available storage backends
-- [ ] Clicking a source tab changes the content area
-- [ ] Top-level folder tree shows root directories
-- [ ] Clicking a folder in the tree navigates to it in content area
-- [ ] Current folder is highlighted in the tree
-- [ ] Sidebar collapse button hides the sidebar
-- [ ] Sidebar expand button restores it
-- [ ] Layout adjusts when sidebar is toggled
+- [X] Sidebar shows source tabs for available storage backends
+- [X] Clicking a source tab changes the content area
+- [X] Top-level folder tree shows root directories
+- [X] Clicking a folder in the tree navigates to it in content area
+- [X] Current folder is highlighted in the tree
+- [X] Sidebar collapse button hides the sidebar
+- [X] Sidebar expand button restores it
+- [X] Layout adjusts when sidebar is toggled
 
 ---
 

@@ -29,6 +29,13 @@
   "asset-vault.search.placeholder": "Search assets…",
 
   "asset-vault.nav.back": "Go up one level",
+  "asset-vault.nav.toggleSidebar": "Toggle sidebar",
+
+  "asset-vault.sidebar.sources": "Sources",
+  "asset-vault.sidebar.folders": "Folders",
+  "asset-vault.sidebar.foldersEmpty": "No folders",
+  "asset-vault.sidebar.favorites": "Favorites",
+  "asset-vault.sidebar.favoritesEmpty": "No favorites yet",
   "asset-vault.content.empty": "No files found in this folder",
   "asset-vault.detail.placeholder": "Select an asset to see details"
 }

@@ -3,6 +3,9 @@ const { FilePicker } = foundry.applications.apps;
 
 export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   #browseResult = null;
+  #sidebarRootDirs = null;
+  #sidebarSourceKey = null;
+  #sidebarCollapsed = false;
   selectedFile = null;
 
   constructor(options = {}) {
@@ -32,6 +35,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       backTraverse: AssetVaultHub.#onBackTraverse,
       setSource: AssetVaultHub.#onSetSource,
       setViewMode: AssetVaultHub.#onSetViewMode,
+      toggleSidebar: AssetVaultHub.#onToggleSidebar,
       selectFile: AssetVaultHub.#onSelectFile,
       confirmSelection: AssetVaultHub.#onConfirmSelection,
       copyUrl: AssetVaultHub.#onCopyUrl
@@ -51,7 +55,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     let files = [];
     let browseError = null;
 
-    // Use cached result to avoid a network round-trip on selection changes
+    // Load content directory (cached per navigation)
     if (!this.#browseResult) {
       try {
         this.#browseResult = await FilePicker.browse(this.activeSource, this.target);
@@ -83,6 +87,9 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         .sort((a, b) => a.name.localeCompare(b.name, game.i18n.lang));
     }
 
+    // Load sidebar root dirs (cached per source)
+    await this.#loadSidebarRootDirs();
+
     const viewMode = game.settings.get("asset-vault", "viewMode");
     const storages = game.data.files?.storages ?? ["data"];
     const availableSources = ["data", "public", "s3"].filter(s => storages.includes(s));
@@ -104,6 +111,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         label: AssetVaultHub.#sourceLabel(s),
         active: s === this.activeSource
       })),
+      sidebarTree: this.#buildSidebarTree(),
       selectedFile: this.selectedFile
     };
   }
@@ -115,7 +123,12 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender(context, options);
 
-    // Double-click a file to confirm in picker mode (re-registered each render)
+    // Restore sidebar collapsed state
+    if (this.#sidebarCollapsed) {
+      this.element.querySelector(".av-sidebar")?.classList.add("av-collapsed");
+    }
+
+    // Double-click a file to confirm in picker mode
     this.element.querySelector(".av-content")?.addEventListener("dblclick", ev => {
       if (this.mode !== "picker") return;
       const item = ev.target.closest(".av-item-file");
@@ -129,7 +142,35 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /* -------------------------------------------- */
-  /*  Helpers                                     */
+  /*  Sidebar helpers                             */
+  /* -------------------------------------------- */
+
+  async #loadSidebarRootDirs() {
+    if (this.#sidebarSourceKey === this.activeSource && this.#sidebarRootDirs !== null) return;
+    try {
+      // Reuse the content browse result if we're already at the root
+      const result = (this.target === "" && this.#browseResult)
+        ? this.#browseResult
+        : await FilePicker.browse(this.activeSource, "");
+      this.#sidebarRootDirs = result.dirs;
+    } catch(e) {
+      this.#sidebarRootDirs = [];
+    }
+    this.#sidebarSourceKey = this.activeSource;
+  }
+
+  #buildSidebarTree() {
+    return (this.#sidebarRootDirs ?? [])
+      .map(d => ({
+        path: d,
+        name: decodeURIComponent(d.split("/").pop()),
+        isActive: this.target === d || this.target.startsWith(d + "/")
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, game.i18n.lang));
+  }
+
+  /* -------------------------------------------- */
+  /*  General helpers                             */
   /* -------------------------------------------- */
 
   #buildBreadcrumbs() {
@@ -163,20 +204,14 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
-  // Update selected highlight in the content list without a re-render
   #applySelectionToDOM(selectedEl) {
     this.element.querySelectorAll(".av-item.selected").forEach(el => el.classList.remove("selected"));
     selectedEl.classList.add("selected");
-
-    // Enable footer Select button
     const footerBtn = this.element.querySelector(".av-select-btn");
     if (footerBtn) footerBtn.disabled = false;
-
-    // Populate the detail panel via DOM
     this.#renderDetailPanel();
   }
 
-  // Build and inject detail panel HTML without a full re-render
   #renderDetailPanel() {
     const panel = this.element.querySelector(".av-detail-panel");
     if (!panel) return;
@@ -235,6 +270,10 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   /* -------------------------------------------- */
 
   navigate(path, source = this.activeSource) {
+    if (source !== this.activeSource) {
+      this.#sidebarRootDirs = null;
+      this.#sidebarSourceKey = null;
+    }
     this.activeSource = source;
     this.target = path;
     this.#browseResult = null;
@@ -267,7 +306,11 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  // DOM-only update — no re-render, scroll position preserved
+  static #onToggleSidebar() {
+    this.#sidebarCollapsed = !this.#sidebarCollapsed;
+    this.element.querySelector(".av-sidebar")?.classList.toggle("av-collapsed", this.#sidebarCollapsed);
+  }
+
   static #onSelectFile(event, target) {
     this.selectedFile = this.#fileDataFromElement(target);
     this.#applySelectionToDOM(target);

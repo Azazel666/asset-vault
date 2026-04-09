@@ -1,8 +1,34 @@
-<div class="av-sources">
-  {{#each sources}}
-  <button type="button" class="av-source-btn{{#if active}} active{{/if}}"
-    data-action="setSource" data-source="{{key}}">
-    {{label}}
-  </button>
-  {{/each}}
+<div class="av-sidebar-section">
+  <div class="av-sidebar-header">{{localize "asset-vault.sidebar.sources"}}</div>
+  <div class="av-sources">
+    {{#each sources}}
+    <button type="button" class="av-source-btn{{#if active}} active{{/if}}"
+      data-action="setSource" data-source="{{key}}">
+      {{label}}
+    </button>
+    {{/each}}
+  </div>
+</div>
+
+<div class="av-sidebar-section av-sidebar-folders">
+  <div class="av-sidebar-header">{{localize "asset-vault.sidebar.folders"}}</div>
+  <div class="av-folder-tree">
+    {{#each sidebarTree}}
+    <button type="button"
+      class="av-tree-node{{#if isActive}} active{{/if}}"
+      data-action="pickDirectory"
+      data-path="{{path}}"
+      title="{{name}}">
+      <i class="fa-solid fa-folder{{#if isActive}}-open{{/if}}"></i>
+      <span class="av-tree-label">{{name}}</span>
+    </button>
+    {{else}}
+    <div class="av-tree-empty">{{localize "asset-vault.sidebar.foldersEmpty"}}</div>
+    {{/each}}
+  </div>
+</div>
+
+<div class="av-sidebar-section">
+  <div class="av-sidebar-header">{{localize "asset-vault.sidebar.favorites"}}</div>
+  <div class="av-favorites-empty">{{localize "asset-vault.sidebar.favoritesEmpty"}}</div>
 </div>
