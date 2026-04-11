@@ -134,6 +134,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
             return {
               name: entry.name,
               path: entry.path,
+              source: entry.source,
               isIcon, isImage, isVideo, isAudio, isPdf, fileType,
               isSelected: this.selectedFile?.path === entry.path
             };
@@ -645,6 +646,16 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       typeEl.className = "av-item-type";
       typeEl.textContent = item.fileType ?? "";
       el.append(thumb, nameEl, typeEl);
+
+      // Cross-world badge — shown only for files from other worlds (search results)
+      if (item.source?.startsWith("world:") && item.source !== "world:current") {
+        const worldId = item.source.slice("world:".length);
+        const badge = document.createElement("span");
+        badge.className = "av-world-badge";
+        badge.title = game.i18n.format("asset-vault.content.crossWorldBadge", { id: worldId });
+        badge.innerHTML = `<i class="fa-solid fa-globe"></i> ${worldId}`;
+        el.appendChild(badge);
+      }
     }
 
     return el;
@@ -1475,11 +1486,13 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         active: af.some(f => f.key === "type" && f.value === t)
       }));
 
-    const worldItems = [], moduleItems = [], systemItems = [], assetItems = [], otherItems = [];
+    const worldItems = [], otherWorldItems = [], moduleItems = [], systemItems = [], assetItems = [], otherItems = [];
     for (const [src, count] of [...sourceMap.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
       const item = { key: src, count, active: af.some(f => f.key === "source" && f.value === src) };
       if (src === "world:current") {
         worldItems.push({ ...item, label: game.i18n.localize("asset-vault.scanLocations.currentWorld") });
+      } else if (src.startsWith("world:")) {
+        otherWorldItems.push({ ...item, label: src.slice("world:".length) });
       } else if (src.startsWith("module:")) {
         moduleItems.push({ ...item, label: src.slice("module:".length) });
       } else if (src.startsWith("system:")) {
@@ -1492,11 +1505,12 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     const sourceGroups = [];
-    if (worldItems.length)  sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.currentWorld"), items: worldItems });
-    if (moduleItems.length) sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.modules"),      items: moduleItems });
-    if (systemItems.length) sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.systems"),      items: systemItems });
-    if (assetItems.length)  sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.globalAssets"), items: assetItems });
-    if (otherItems.length)  sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.otherFolders"), items: otherItems });
+    if (worldItems.length)      sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.currentWorld"), items: worldItems });
+    if (otherWorldItems.length) sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.otherWorlds"),  items: otherWorldItems });
+    if (moduleItems.length)     sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.modules"),      items: moduleItems });
+    if (systemItems.length)     sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.systems"),      items: systemItems });
+    if (assetItems.length)      sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.globalAssets"), items: assetItems });
+    if (otherItems.length)      sourceGroups.push({ label: game.i18n.localize("asset-vault.scanLocations.otherFolders"), items: otherItems });
 
     const topTags = [...tagMap.entries()]
       .sort((a, b) => b[1] - a[1])

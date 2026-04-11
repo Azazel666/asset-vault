@@ -1752,14 +1752,14 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ### Verification
 
-- [ ] Enable another world in Scan Locations → rebuild → files from that world appear in index
-- [ ] Searching for a file that exists only in the other world returns results
-- [ ] `[source:world:other-campaign]` filter returns only files from that world
-- [ ] Auto-tags include `world:<otherId>` for cross-world files
-- [ ] Disabling the other world in Scan Locations → rebuild → those files removed from index
+- [X] Enable another world in Scan Locations → rebuild → files from that world appear in index
+- [X] Searching for a file that exists only in the other world returns results
+- [X] `[source:world:other-campaign]` filter returns only files from that world
+- [X] Auto-tags include `world:<otherId>` for cross-world files
+- [X] Disabling the other world in Scan Locations → rebuild → those files removed from index
 - [ ] If the other world's folder is deleted, scan skips it with a warning (no crash)
-- [ ] Files from other worlds show a visual indicator in browse/search results
-- [ ] Current world files still tagged `world:current` (not the world ID)
+- [X] Files from other worlds show a visual indicator in browse/search results
+- [X] Current world files still tagged `world:current` (not the world ID)
 
 ---
 

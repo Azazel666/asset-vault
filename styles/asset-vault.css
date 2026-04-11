@@ -729,6 +729,34 @@
   flex-shrink: 0;
 }
 
+/* Cross-world file badge */
+.av-world-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  background: rgba(80, 140, 200, 0.2);
+  color: var(--color-text-hyperlink, #4a7fa5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+.av-items[data-view="grid"] .av-world-badge {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  max-width: calc(100% - 0.4rem);
+}
+
+.av-items[data-view="grid"] .av-item-file:has(.av-world-badge) {
+  position: relative;
+}
+
 /* ---------------------------------------- */
 /*  Picker footer                           */
 /* ---------------------------------------- */

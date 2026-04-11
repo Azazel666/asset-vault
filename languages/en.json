@@ -82,6 +82,7 @@
   "asset-vault.favorites.added": "Added \"{label}\" to favorites",
   "asset-vault.favorites.removed": "Removed \"{label}\" from favorites",
   "asset-vault.content.empty": "No files found in this folder",
+  "asset-vault.content.crossWorldBadge": "From world: {id}",
   "asset-vault.content.typeFolder": "Folder",
   "asset-vault.content.typeImage": "Image",
   "asset-vault.content.typeVideo": "Video",

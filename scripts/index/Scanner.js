@@ -50,7 +50,7 @@ export class Scanner {
     try {
       browseResult = await FilePicker.browse("data", path);
     } catch {
-      // Directory doesn't exist or is inaccessible — skip silently
+      console.warn(`Asset Vault | Skipping inaccessible or missing path: ${path}`);
       return;
     }
 
