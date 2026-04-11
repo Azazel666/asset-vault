@@ -93,9 +93,22 @@
   </div>
 </div>
 
-<div class="av-sidebar-section">
+<div class="av-sidebar-section av-favorites-section">
   <div class="av-sidebar-header">{{localize "asset-vault.sidebar.favorites"}}</div>
-  <div class="av-favorites-empty">{{localize "asset-vault.sidebar.favoritesEmpty"}}</div>
+  {{#if favorites.length}}
+  <ul class="av-favorites-list">
+    {{#each favorites}}
+    <li class="av-favorite-item" data-action="navigateFavorite"
+      data-path="{{path}}" data-source="{{source}}" data-index="{{@index}}"
+      title="{{path}}">
+      <i class="fa-solid fa-star av-favorite-icon"></i>
+      <span class="av-favorite-label">{{label}}</span>
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="av-favorites-empty">{{localize "asset-vault.sidebar.favoritesEmpty"}}</p>
+  {{/if}}
 </div>
 
 {{/if}}

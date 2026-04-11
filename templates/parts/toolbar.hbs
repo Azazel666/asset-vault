@@ -10,7 +10,7 @@
   </button>
   <nav class="av-breadcrumb">
     {{#each breadcrumbs}}
-    {{#if isLast}}
+    {{#if @last}}
     <span class="av-crumb av-crumb-current">{{label}}</span>
     {{else}}
     <button type="button" class="av-crumb av-crumb-btn" data-action="pickDirectory" data-path="{{path}}">{{label}}</button>
@@ -18,6 +18,12 @@
     {{/if}}
     {{/each}}
   </nav>
+  {{#if canFavorite}}
+  <button type="button" class="av-view-btn av-star-btn" data-action="toggleFavorite"
+    title="{{#if isFavorited}}{{localize 'asset-vault.context.removeFavorite'}}{{else}}{{localize 'asset-vault.context.addFavorite'}}{{/if}}">
+    <i class="fa-{{#if isFavorited}}solid{{else}}regular{{/if}} fa-star"></i>
+  </button>
+  {{/if}}
   {{else}}
   <span class="av-search-result-count">{{searchResultText}}</span>
   {{/unless}}

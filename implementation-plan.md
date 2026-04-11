@@ -1606,148 +1606,11 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ---
 
-## Phase 3 — File Management, Favorites & Polish
+## Phase 3 — Favorites & Polish
 
 ---
 
-## Iteration 25 — Move File/Folder
-
-**Goal:** GMs can move files and folders to different locations within the Data directory via the Hub's browse mode. Moves update the index automatically.
-
-### Tasks
-
-1. Add "Move" action to the right-click context menu (files and folders):
-   - Menu item: `fa-solid fa-arrows-up-down-left-right` "Move to..."
-   - Only available for files/folders in the `data` source (not `public`, `s3`, or module/system paths — those are read-only)
-   - GM-only action
-
-2. Implement move destination picker:
-   - On "Move to..." click, open a lightweight folder picker dialog (DialogV2 or small ApplicationV2):
-     - Reuse the sidebar folder tree component from the Hub
-     - Shows only directories (no files)
-     - User navigates to the target folder and clicks "Move Here"
-     - Cancel button to abort
-   - The dialog shows the current location and the selected destination
-
-3. Implement server-side move:
-   - Foundry does not have a native file move API
-   - Strategy: **copy + delete via socket/server request**
-     - Check if `foundry.utils` or the server API exposes a move/rename endpoint
-     - If not available: use `FilePicker.upload()` to copy the file to the new location, then attempt deletion of the original (see Iteration 26 for delete mechanism)
-     - For folders: recursively move contents, then remove empty source folder
-   - **Alternative:** Check if Foundry v13 exposes a `FilePicker.move()` or file management socket event. If found, use it directly.
-   - > **⚠ Research needed:** Before implementing, check Foundry v13 source for any file move/rename API. Console commands to try:
-     > ```javascript
-     > // Check for move-related socket events
-     > game.socket.events
-     > // Check FilePicker static methods
-     > Object.getOwnPropertyNames(foundry.applications.apps.FilePicker)
-     > ```
-
-4. Update index after move:
-   - Remove the old path entry from the index
-   - Add the new path entry (re-run auto-tagger since path-based tags change)
-   - If a folder was moved, update all entries whose paths start with the old folder path
-   - Rebuild affected haystack entries
-   - Save index (debounced)
-
-5. Update UI after move:
-   - If the Hub is viewing the source directory, re-browse to reflect the file is gone
-   - If viewing the destination directory, re-browse to show the new file
-   - Show notification: "Moved [filename] to [destination]"
-
-6. Error handling:
-   - Target already exists: show error notification, abort move
-   - Permission denied: show error notification
-   - Move to same location: no-op, no error
-
-### Verification
-
-- [ ] Right-click a file → "Move to..." appears in context menu
-- [ ] Move dialog opens showing folder tree
-- [ ] Navigating to a destination folder and clicking "Move Here" moves the file
-- [ ] File disappears from source directory in browse view
-- [ ] File appears in destination directory in browse view
-- [ ] Index is updated: searching for the file returns the new path
-- [ ] Auto-tags are regenerated (path-based tags reflect new location)
-- [ ] Moving a folder moves all its contents recursively
-- [ ] "Move to..." is NOT available for files in module/system directories (read-only)
-- [ ] Moving to the same directory is a no-op
-- [ ] Error shown if destination already has a file with the same name
-- [ ] Notification confirms successful move
-
----
-
-## Iteration 26 — Delete File/Folder
-
-**Goal:** GMs can delete files and folders from the Hub with a confirmation dialog. Deletes update the index automatically.
-
-### Tasks
-
-1. Add "Delete" action to the right-click context menu:
-   - Menu item: `fa-solid fa-trash` "Delete" (red text for visual warning)
-   - Only available for files/folders in the `data` source (not module/system paths)
-   - GM-only action
-
-2. Implement confirmation dialog:
-   - Use `DialogV2.confirm()` or a custom DialogV2:
-     - Title: "Delete [filename]?"
-     - Content: "Are you sure you want to delete **[filename]**? This action cannot be undone."
-     - For folders: "Are you sure you want to delete the folder **[foldername]** and all its contents? This action cannot be undone."
-     - Show file preview thumbnail in the dialog for visual confirmation
-     - Buttons: "Delete" (danger-styled) and "Cancel"
-   - Never delete without confirmation — no exceptions
-
-3. Implement server-side delete:
-   - Check for Foundry v13's file deletion API:
-     - Look for a socket event or server-side endpoint for file deletion
-     - `FilePicker` does not expose a `delete()` method in the public API
-   - > **⚠ Research needed:** Check Foundry v13 source:
-     > ```javascript
-     > // Check for delete-related socket events
-     > game.socket.events
-     > // Check if there's a server route
-     > // Look at Foundry's own "delete file" behavior (if any exists in core UI)
-     > ```
-   - If no API exists: this feature may need a companion server-side module or may be limited to what the Foundry server allows. Document the limitation.
-   - For folders: recursively delete contents first, then the empty folder
-
-4. Update index after delete:
-   - Remove the deleted file's entry from the index
-   - If a folder was deleted, remove all entries whose paths start with that folder path
-   - Remove from haystack
-   - Save index (debounced)
-
-5. Update UI after delete:
-   - Re-browse current directory to reflect the deletion
-   - If the deleted file was selected in the detail panel, clear the detail panel
-   - Show notification: "Deleted [filename]"
-
-6. Safety guardrails:
-   - Never allow deletion of system-critical directories (`worlds/`, `modules/`, `systems/`, `assets/` root)
-   - Never allow deletion of the world's own root folder
-   - Only allow deletion within the `data` source
-   - Block deletion of files outside the world directory if a setting is enabled (future: configurable scope)
-
-### Verification
-
-- [ ] Right-click a file → "Delete" appears in context menu (red text)
-- [ ] Clicking "Delete" opens a confirmation dialog with filename and preview
-- [ ] Clicking "Cancel" aborts — file remains
-- [ ] Clicking "Delete" in the dialog removes the file from disk
-- [ ] File disappears from browse view after deletion
-- [ ] File is removed from the index — search no longer returns it
-- [ ] Deleting a folder shows folder-specific confirmation text
-- [ ] Deleting a folder removes all its contents and the folder itself
-- [ ] "Delete" is NOT available for files in module/system directories
-- [ ] Cannot delete root-level directories (worlds/, modules/, systems/, assets/)
-- [ ] Detail panel clears if the selected file was deleted
-- [ ] Notification confirms successful deletion
-- [ ] If server-side deletion is not possible, a clear error message is shown explaining the limitation
-
----
-
-## Iteration 27 — Favorites
+## Iteration 25 — Favorites
 
 **Goal:** Users can bookmark folder paths for quick navigation. Favorites are per-user, so each GM or Assistant GM has their own set.
 
@@ -1779,35 +1642,30 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
    - User can rename to a custom label (e.g., "Battle Maps")
    - Label stored in the favorites array alongside the path
 
-5. Favorites in search mode:
-   - Favorites section remains visible at the top of the sidebar even in search mode
-   - Clicking a favorite while in search mode: clears the search and navigates to the folder
-
-6. Sync and persistence:
+5. Sync and persistence:
    - Changes save immediately via `game.user.setFlag()`
    - Favorites are per-user and sync across devices (user flags are stored in the world DB)
    - Multiple GMs/Assistant GMs each see only their own favorites
 
 ### Verification
 
-- [ ] Right-click a folder → "Add to Favorites" appears in context menu
-- [ ] Clicking "Add to Favorites" adds the folder to the sidebar favorites section
-- [ ] Favorites section appears at the top of the sidebar with the added folder
-- [ ] Clicking a favorite navigates to that folder
-- [ ] Star icon in breadcrumb bar toggles between filled (favorited) and outline (not favorited)
-- [ ] Right-click a favorite → "Rename" opens a label editor dialog
-- [ ] Renamed label displays correctly in the sidebar
-- [ ] Right-click a favorite → "Remove" removes it from the list
-- [ ] Favorites persist after closing and reopening the Hub
-- [ ] Favorites persist after world reload
-- [ ] Different users (test with two GM accounts if possible) have independent favorite lists
-- [ ] Clicking a favorite while in search mode clears search and navigates
-- [ ] Empty favorites section shows helpful placeholder text
-- [ ] No errors when a favorited folder no longer exists (show as greyed out or auto-remove)
+- [X] Right-click a folder → "Add to Favorites" appears in context menu
+- [X] Clicking "Add to Favorites" adds the folder to the sidebar favorites section
+- [X] Favorites section appears at the top of the sidebar with the added folder
+- [X] Clicking a favorite navigates to that folder
+- [X] Star button in breadcrumb bar: filled star when current folder is favorited, outline when not; clicking toggles
+- [X] Right-click a favorite → "Rename" opens a label editor dialog
+- [X] Renamed label displays correctly in the sidebar
+- [X] Right-click a favorite → "Remove" removes it from the list
+- [X] Favorites persist after closing and reopening the Hub
+- [X] Favorites persist after world reload
+- [X] Different users (test with two GM accounts if possible) have independent favorite lists
+- [X] Empty favorites section shows helpful placeholder text
+- [X] Navigating to a favorited folder that no longer exists shows a browse error (expected — no crash)
 
 ---
 
-## Iteration 28 — Virtual Scrolling
+## Iteration 26 — Virtual Scrolling
 
 **Goal:** Content area uses virtual scrolling to efficiently render large file sets (10,000+ files) without DOM overload.
 
@@ -1865,7 +1723,7 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ---
 
-## Iteration 29 — Cross-World Scanning
+## Iteration 27 — Cross-World Scanning
 
 **Goal:** GMs can opt-in to index files from other worlds. Each world's index remains independent — this just adds other worlds' files to the current index.
 
@@ -1905,7 +1763,7 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ---
 
-## Iteration 30 — Localization
+## Iteration 28 — Localization
 
 **Goal:** All user-facing strings use i18n keys. Non-English translations can be contributed via language files.
 
@@ -1969,7 +1827,7 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ---
 
-## Iteration 31 — Player Access
+## Iteration 29 — Player Access
 
 **Goal:** Players can use Asset Vault in a restricted mode when Foundry's permission system grants them access to modify document fields (e.g., character portrait). GMs configure what players can see.
 
@@ -2028,21 +1886,13 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ---
 
-## Iteration 32 — Phase 3 Integration Testing & Polish
+## Iteration 30 — Phase 3 Integration Testing & Polish
 
-**Goal:** End-to-end verification of all Phase 3 features. Ensure file operations are safe and all features work together.
+**Goal:** End-to-end verification of all Phase 3 features working together correctly.
 
 ### Tasks
 
-1. **File management testing:**
-   - Move a file → verify source empty, destination has file, index updated, tags regenerated
-   - Move a folder with subfolders → verify recursive move, all index entries updated
-   - Delete a file → verify gone from disk, index, and search
-   - Delete a folder → verify all contents removed
-   - Attempt move/delete on module files → verify blocked (read-only)
-   - Attempt delete on root directories → verify blocked
-
-2. **Favorites testing:**
+1. **Favorites testing:**
    - Add favorites → navigate via sidebar → verify correct folder
    - Rename favorite → verify label persists
    - Remove favorite → verify gone from sidebar
@@ -2062,37 +1912,69 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
    - Player attempts to access restricted features → verify blocked
 
 5. **Cross-feature interactions:**
-   - Move a favorited file → favorite path no longer valid → verify handled
-   - Delete a file that's in search results → verify results update
    - Virtual scroll + drag-and-drop → verify drag works from any scroll position
    - Player mode + favorites → verify favorites work in restricted mode
-
-6. **Safety audit:**
-   - Verify no file operation can touch module/system directories
-   - Verify delete always requires confirmation
-   - Verify move cannot overwrite existing files silently
-   - Test rapid move/delete operations → verify no race conditions in index updates
+   - Favorite a folder, then navigate away and back → verify state consistent
 
 ### Verification
 
-- [ ] Move file: source → destination, index updated, tags regenerated, notification shown
-- [ ] Move folder: recursive, all index entries updated
-- [ ] Delete file: gone from disk, index, search — after confirmation
-- [ ] Delete folder: all contents removed after confirmation
-- [ ] Read-only locations (modules, systems) block move/delete
 - [ ] Favorites: add, navigate, rename, remove — full cycle
 - [ ] Favorites are per-user (independent between GM accounts)
 - [ ] Virtual scroll: smooth at 1000+ items, DOM count stays under 200
-- [ ] Player restricted mode: no tag edit, no move, no delete, location-filtered browse/search
-- [ ] Cross-feature: deleted files disappear from search results and favorites
+- [ ] Player restricted mode: no tag edit, location-filtered browse/search
+- [ ] Cross-feature: favorites + search + virtual scroll all cooperate correctly
 - [ ] No console errors across all Phase 3 features
-- [ ] No data loss scenarios possible via the UI
 
 ---
 
 ## Post-Phase 3 — Future Roadmap
 
 Once all Phase 3 iterations pass verification, Asset Vault is a comprehensive media management solution.
+
+### Shelved: File Management (no native Foundry API)
+
+Foundry v13's `FilePicker` exposes no `move()`, `rename()`, or `delete()` server-side endpoint. These features require either a future Foundry API addition or a companion server plugin.
+
+#### Shelved — Move File/Folder (was Iteration 25)
+
+**Goal:** GMs can move files and folders to different locations within the Data directory via the Hub's browse mode. Moves update the index automatically.
+
+**Tasks:**
+1. Add "Move to..." context menu item on files and folders (data source only, GM only)
+2. Open a folder picker dialog (reuse sidebar tree) for destination selection
+3. Implement server-side move — no native API; would need socket/server approach or `FilePicker.move()` if added in a future Foundry version
+4. Update index: remove old path, add new path with regenerated auto-tags
+5. Re-browse current directory after move; show notification
+
+**Verification:**
+- Right-click file → "Move to..." in context menu
+- Move dialog opens with folder tree; clicking "Move Here" moves the file
+- Index updated; search returns new path; auto-tags regenerated
+- "Move to..." absent for module/system directories
+- Error shown if destination already has a file with the same name
+
+---
+
+#### Shelved — Delete File/Folder (was Iteration 26)
+
+**Goal:** GMs can delete files and folders from the Hub with a confirmation dialog. Deletes update the index automatically.
+
+**Tasks:**
+1. Add "Delete" context menu item (data source only, GM only, red-styled)
+2. Confirmation dialog via `DialogV2.confirm()` before any deletion
+3. Implement server-side delete — no native `FilePicker.delete()` exists
+4. Update index: remove entry, rebuild haystack, debounced save
+5. Re-browse and clear detail panel if deleted file was selected; show notification
+6. Safety guardrails: never allow deletion of `worlds/`, `modules/`, `systems/` roots
+
+**Verification:**
+- Right-click file → "Delete" in context menu
+- Confirmation dialog shown; Cancel aborts; Delete removes file
+- File gone from browse view, index, and search results
+- Detail panel clears if deleted file was selected
+- Root directories and module paths cannot be deleted
+
+---
 
 **Future considerations:**
 - **File usage detection** — Scan world documents (scenes, actors, items, journals) to determine which files are referenced. Show "Used by: Scene X, Actor Y" in the detail panel. Flag unreferenced files as orphans for cleanup.

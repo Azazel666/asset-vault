@@ -63,13 +63,18 @@
   align-items: center;
   gap: 0.25rem;
   flex: 1;
-  overflow: hidden;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;       /* Firefox */
   font-size: 0.85rem;
 }
+.av-breadcrumb::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 
 .av-crumb {
   white-space: nowrap;
-  color: #191813;
+  color: var(--color-text-primary, #191813);
+  flex-shrink: 0;
 }
 
 .av-crumb-btn {
@@ -88,8 +93,6 @@
 
 .av-crumb-current {
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .av-crumb-sep {
@@ -331,15 +334,6 @@
 }
 
 .av-tree-empty {
-  font-size: 0.78rem;
-  color: var(--color-text-light-6, #888);
-  font-style: italic;
-  padding: 0.25rem 0.4rem;
-  white-space: nowrap;
-}
-
-/* Favorites placeholder */
-.av-favorites-empty {
   font-size: 0.78rem;
   color: var(--color-text-light-6, #888);
   font-style: italic;
@@ -1101,3 +1095,75 @@
 .av-fp-tag.active .av-fp-tag-count {
   opacity: 0.75;
 }
+
+/* ---------------------------------------- */
+/*  Favorites                               */
+/* ---------------------------------------- */
+
+.av-favorites-section {
+  border-bottom: 1px solid var(--color-border-light-tertiary, #ccc);
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.av-favorites-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.av-favorite-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.82em;
+  user-select: none;
+}
+.av-favorite-item:hover { background: var(--color-hover, rgba(0,0,0,0.05)); }
+
+.av-favorite-icon {
+  color: var(--color-level-warning, #f5a623);
+  font-size: 0.7em;
+  flex-shrink: 0;
+}
+
+.av-favorite-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.av-favorites-empty {
+  font-size: 0.78rem;
+  color: var(--color-text-light-6, #888);
+  padding: 0.2rem 0.4rem;
+  margin: 0;
+  font-style: italic;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* Inline context menu for favorite items */
+.av-fav-ctx-menu {
+  background: #fff;
+  border: 1px solid #666;
+  border-radius: 4px;
+  padding: 0.2rem 0;
+  list-style: none;
+  margin: 0;
+  min-width: 160px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+}
+.av-fav-ctx-menu li {
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.85em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #191813;
+}
+.av-fav-ctx-menu li:hover { background: rgba(0,0,0,0.07); }

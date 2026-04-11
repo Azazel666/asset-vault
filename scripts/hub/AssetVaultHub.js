@@ -72,7 +72,9 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       toggleTagFilter:    AssetVaultHub.#onToggleTagFilter,
       clearAllFilters:    AssetVaultHub.#onClearAllFilters,
       detachWindow:       AssetVaultHub.#onDetachWindow,
-      uploadFile:         AssetVaultHub.#onUploadFile
+      uploadFile:         AssetVaultHub.#onUploadFile,
+      navigateFavorite:   AssetVaultHub.#onNavigateFavorite,
+      toggleFavorite:     AssetVaultHub.#onToggleFavorite
     }
   };
 
@@ -196,11 +198,17 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       && this.activeSource !== "s3"
       && (game.user.isGM || game.settings.get("asset-vault", "enableForPlayers"));
 
+    const canFavorite = !isSearchMode && !!this.target && this.activeSource !== "s3";
+    const isFavorited = canFavorite
+      && this.#favorites.some(f => f.path === this.target && f.source === this.activeSource);
+
     return {
       mode: this.mode,
       isPicker: this.mode === "picker",
       isDetached: this.#isDetached,
       canUpload,
+      canFavorite,
+      isFavorited,
       viewMode,
       isGrid: viewMode === "grid",
       isList: viewMode === "list",
@@ -224,6 +232,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         active: s === this.activeSource
       })),
       sidebarTree: this.#buildSidebarTree(),
+      favorites: this.#favorites,
       selectedFile: selectedFileCtx,
       showAutoTags,
       indexStatus,
@@ -379,6 +388,19 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         const files = Array.from(e.target.files);
         e.target.value = ""; // reset so the same file can be re-uploaded
         if (files.length) await this.#doUploadFiles(files);
+      });
+    }
+
+    // Scroll breadcrumb to the right so the current directory is always visible
+    const breadcrumbNav = this.element.querySelector(".av-breadcrumb");
+    if (breadcrumbNav) breadcrumbNav.scrollLeft = breadcrumbNav.scrollWidth;
+
+    // Wire right-click on favorite items in sidebar
+    for (const item of this.element.querySelectorAll(".av-favorite-item")) {
+      item.addEventListener("contextmenu", e => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.#onFavoriteContextMenu(e, item);
       });
     }
 
@@ -777,6 +799,97 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     item.addEventListener("dragend", () => item.classList.remove("av-dragging"), { once: true });
   }
 
+  /* -------------------------------------------- */
+  /*  Favorites                                   */
+  /* -------------------------------------------- */
+
+  get #favorites() {
+    return game.user.getFlag("asset-vault", "favorites") ?? [];
+  }
+
+  async #saveFavorites(list) {
+    await game.user.setFlag("asset-vault", "favorites", list);
+  }
+
+  static #onNavigateFavorite(event, target) {
+    const { path, source } = target.dataset;
+    this.#searchFreeText = "";
+    this.#searchFilters = [];
+    this.navigate(path, source);
+  }
+
+  static async #onToggleFavorite() {
+    const path = this.target;
+    const source = this.activeSource;
+    const favs = this.#favorites;
+    const idx = favs.findIndex(f => f.path === path && f.source === source);
+    if (idx >= 0) {
+      const fav = favs[idx];
+      await this.#saveFavorites(favs.filter((_, i) => i !== idx));
+      ui.notifications.info(game.i18n.format("asset-vault.favorites.removed", { label: fav.label }));
+    } else {
+      const label = path.split("/").pop() || AssetVaultHub.#sourceLabel(source);
+      await this.#saveFavorites([...favs, { path, source, label }]);
+      ui.notifications.info(game.i18n.format("asset-vault.favorites.added", { label }));
+    }
+    this.render();
+  }
+
+  async #onFavoriteContextMenu(event, item) {
+    const idx = parseInt(item.dataset.index, 10);
+    const favs = this.#favorites;
+    const fav = favs[idx];
+    if (!fav) return;
+
+    // Remove any existing inline menu
+    document.querySelector(".av-fav-ctx-menu")?.remove();
+
+    const menu = document.createElement("ul");
+    menu.className = "av-fav-ctx-menu";
+    menu.style.cssText = `position:fixed;left:${event.clientX}px;top:${event.clientY}px;z-index:9999`;
+
+    const mkItem = (icon, label, handler) => {
+      const li = document.createElement("li");
+      li.innerHTML = `${icon} ${label}`;
+      li.addEventListener("click", async () => { menu.remove(); await handler(); });
+      menu.append(li);
+    };
+
+    mkItem('<i class="fa-solid fa-pencil"></i>',
+      game.i18n.localize("asset-vault.favorites.rename"),
+      async () => {
+        const { DialogV2 } = foundry.applications.api;
+        const result = await DialogV2.input({
+          window: { title: game.i18n.localize("asset-vault.favorites.rename") },
+          content: `<div class="form-group"><label>${game.i18n.localize("asset-vault.favorites.renamePrompt")}
+            <input type="text" name="label" value="${fav.label}" autofocus></label></div>`,
+          ok: { callback: (event, button) => button.form.elements.label.value.trim() }
+        });
+        if (!result) return;
+        await this.#saveFavorites(favs.map((f, i) => i === idx ? { ...f, label: result } : f));
+        this.render();
+      }
+    );
+
+    mkItem('<i class="fa-solid fa-trash"></i>',
+      game.i18n.localize("asset-vault.favorites.remove"),
+      async () => {
+        await this.#saveFavorites(favs.filter((_, i) => i !== idx));
+        ui.notifications.info(game.i18n.format("asset-vault.favorites.removed", { label: fav.label }));
+        this.render();
+      }
+    );
+
+    document.body.append(menu);
+    const dismiss = () => menu.remove();
+    document.addEventListener("click", dismiss, { once: true });
+    document.addEventListener("keydown", dismiss, { once: true });
+  }
+
+  /* -------------------------------------------- */
+  /*  Upload                                      */
+  /* -------------------------------------------- */
+
   async #doUploadFiles(files) {
     const source = this.activeSource;
     const path = this.target;
@@ -1001,6 +1114,39 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         icon: '<i class="fa-solid fa-copy"></i>',
         callback: async target => {
           await navigator.clipboard.writeText(target.dataset.path);
+        }
+      },
+      {
+        name: "asset-vault.context.addFavorite",
+        icon: '<i class="fa-regular fa-star"></i>',
+        condition: target => {
+          const { path } = target.dataset;
+          const source = this.activeSource;
+          return !this.#favorites.some(f => f.path === path && f.source === source);
+        },
+        callback: async target => {
+          const { path, name: label } = target.dataset;
+          const source = this.activeSource;
+          await this.#saveFavorites([...this.#favorites, { path, source, label }]);
+          ui.notifications.info(game.i18n.format("asset-vault.favorites.added", { label }));
+          this.render();
+        }
+      },
+      {
+        name: "asset-vault.context.removeFavorite",
+        icon: '<i class="fa-solid fa-star"></i>',
+        condition: target => {
+          const { path } = target.dataset;
+          const source = this.activeSource;
+          return this.#favorites.some(f => f.path === path && f.source === source);
+        },
+        callback: async target => {
+          const { path } = target.dataset;
+          const source = this.activeSource;
+          const fav = this.#favorites.find(f => f.path === path && f.source === source);
+          await this.#saveFavorites(this.#favorites.filter(f => !(f.path === path && f.source === source)));
+          ui.notifications.info(game.i18n.format("asset-vault.favorites.removed", { label: fav?.label ?? path }));
+          this.render();
         }
       }
     ];
