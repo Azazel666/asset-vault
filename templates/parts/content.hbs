@@ -2,82 +2,14 @@
 <div class="av-state-msg av-error">
   <i class="fa-solid fa-triangle-exclamation"></i> {{browseError}}
 </div>
-{{else if isSearchMode}}
-  {{#if files.length}}
-  <div class="av-items" data-view="{{viewMode}}">
-    {{#each files}}
-    <div class="av-item av-item-file{{#if isSelected}} selected{{/if}}"
-      data-action="selectFile"
-      data-path="{{path}}"
-      data-name="{{name}}"
-      data-is-icon="{{isIcon}}"
-      data-is-image="{{isImage}}"
-      data-is-video="{{isVideo}}"
-      data-is-audio="{{isAudio}}"
-      data-is-pdf="{{isPdf}}"
-      data-file-type="{{fileType}}"
-      title="{{name}}">
-      {{#if isIcon}}
-      <i class="{{path}} av-item-icon av-item-icon--fa"></i>
-      {{else if isImage}}
-      <img class="av-thumb" src="{{path}}" loading="lazy" alt="{{name}}" draggable="false" />
-      {{else if isVideo}}
-      <i class="fa-solid fa-file-video av-item-icon"></i>
-      {{else if isAudio}}
-      <i class="fa-solid fa-file-audio av-item-icon"></i>
-      {{else if isPdf}}
-      <i class="fa-solid fa-file-pdf av-item-icon"></i>
-      {{else}}
-      <i class="fa-solid fa-file av-item-icon"></i>
-      {{/if}}
-      <span class="av-item-name">{{name}}</span>
-      <span class="av-item-type">{{fileType}}</span>
-    </div>
-    {{/each}}
-  </div>
-  {{else}}
-  <div class="av-state-msg">
-    <i class="fa-solid fa-magnifying-glass"></i> {{localize "asset-vault.search.noResults"}}
-  </div>
-  {{/if}}
+{{else if searchNoResults}}
+<div class="av-state-msg">
+  <i class="fa-solid fa-magnifying-glass"></i> {{localize "asset-vault.search.noResults"}}
+</div>
 {{else if noResults}}
 <div class="av-state-msg av-empty">
   <i class="fa-solid fa-folder-open"></i> {{localize "asset-vault.content.empty"}}
 </div>
 {{else}}
-<div class="av-items" data-view="{{viewMode}}">
-  {{#each dirs}}
-  <div class="av-item av-item-dir" data-action="pickDirectory" data-path="{{path}}" data-name="{{name}}" title="{{name}}">
-    <i class="fa-solid fa-folder av-item-icon"></i>
-    <span class="av-item-name">{{name}}</span>
-    <span class="av-item-type">{{localize "asset-vault.content.typeFolder"}}</span>
-  </div>
-  {{/each}}
-  {{#each files}}
-  <div class="av-item av-item-file{{#if isSelected}} selected{{/if}}"
-    data-action="selectFile"
-    data-path="{{path}}"
-    data-name="{{name}}"
-    data-is-image="{{isImage}}"
-    data-is-video="{{isVideo}}"
-    data-is-audio="{{isAudio}}"
-    data-is-pdf="{{isPdf}}"
-    data-file-type="{{fileType}}"
-    title="{{name}}">
-    {{#if isImage}}
-    <img class="av-thumb" src="{{path}}" loading="lazy" alt="{{name}}" draggable="false" />
-    {{else if isVideo}}
-    <i class="fa-solid fa-file-video av-item-icon"></i>
-    {{else if isAudio}}
-    <i class="fa-solid fa-file-audio av-item-icon"></i>
-    {{else if isPdf}}
-    <i class="fa-solid fa-file-pdf av-item-icon"></i>
-    {{else}}
-    <i class="fa-solid fa-file av-item-icon"></i>
-    {{/if}}
-    <span class="av-item-name">{{name}}</span>
-    <span class="av-item-type">{{fileType}}</span>
-  </div>
-  {{/each}}
-</div>
+<div class="av-items" data-view="{{viewMode}}"></div>
 {{/if}}

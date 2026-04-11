@@ -1709,17 +1709,17 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ### Verification
 
-- [ ] Browse a directory with 500+ files — renders instantly, no lag
-- [ ] Scrolling through 1000+ files is smooth (60fps, no jank)
-- [ ] DOM inspector shows only ~100-200 file item elements regardless of total count
-- [ ] Grid view: items per row adjusts correctly on window resize
-- [ ] List view: rows render at consistent height, no visual gaps
-- [ ] Switching between grid and list view works correctly with virtual scroll
-- [ ] Search results with many matches render and scroll smoothly
-- [ ] "Show in Folder" (from context menu) scrolls to and highlights the target file
-- [ ] Selecting a file near the bottom of a large set shows the detail panel correctly
-- [ ] Empty directories still show the empty state message
-- [ ] No visual artifacts when scrolling quickly (no blank rows or flickering)
+- [X] Browse a directory with 500+ files — renders instantly, no lag
+- [X] Scrolling through 1000+ files is smooth (60fps, no jank)
+- [X] DOM inspector shows only ~100-200 file item elements regardless of total count
+- [X] Grid view: items per row adjusts correctly on window resize
+- [X] List view: rows render at consistent height, no visual gaps
+- [X] Switching between grid and list view works correctly with virtual scroll
+- [X] Search results with many matches render and scroll smoothly
+- [X] "Show in Folder" (from context menu) scrolls to and highlights the target file
+- [X] Selecting a file near the bottom of a large set shows the detail panel correctly
+- [X] Empty directories still show the empty state message
+- [X] No visual artifacts when scrolling quickly (no blank rows or flickering)
 
 ---
 

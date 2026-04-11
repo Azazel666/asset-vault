@@ -592,7 +592,8 @@
 /* ---------------------------------------- */
 
 .av-items {
-  display: contents;
+  /* display set by [data-view] variants below */
+  box-sizing: border-box;
 }
 
 .av-item {

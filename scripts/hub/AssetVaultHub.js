@@ -1,4 +1,5 @@
 import { SearchAutocomplete } from "../search/SearchAutocomplete.js";
+import { VirtualScroller } from "./VirtualScroller.js";
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 const { FilePicker } = foundry.applications.apps;
@@ -21,6 +22,9 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   #activeMedia = null;
   #popoutWindow = null;
   #isDetaching = false;
+  #currentItems = [];
+  #virtualScroller = null;
+  #highlightFilePath = null;
   selectedFile = null;
 
   get #isDetached() {
@@ -173,6 +177,13 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       await this.#loadSidebarRootDirs();
     }
 
+    // Build the flat items array for the VirtualScroller
+    const folderType = game.i18n.localize("asset-vault.content.typeFolder");
+    this.#currentItems = [
+      ...dirs.map(d => ({ ...d, isDir: true, fileType: folderType })),
+      ...files.map(f => ({ ...f, isDir: false }))
+    ];
+
     const viewMode = game.settings.get("asset-vault", "viewMode");
     const storages = game.data.files?.storages ?? ["data"];
     const availableSources = ["data", "public", "s3"].filter(s => storages.includes(s));
@@ -220,9 +231,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       searchResultText: isSearchMode
         ? game.i18n.format("asset-vault.search.resultCount", { count: files.length, query: this.#searchQuery })
         : "",
-      dirs,
-      files,
       noResults: !isSearchMode && dirs.length + files.length === 0,
+      searchNoResults: isSearchMode && files.length === 0,
       browseError,
       breadcrumbs: this.#buildBreadcrumbs(),
       activeSource: this.activeSource,
@@ -427,13 +437,27 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#activeMedia = null;
     }
 
-    // Wire dragstart directly on each file item (hub mode only).
-    // Direct wiring mirrors Foundry's DragDrop pattern and avoids native-image-drag
-    // interference that breaks event delegation.
-    if (this.mode === "hub") {
-      for (const item of this.element.querySelectorAll(".av-item-file")) {
-        item.draggable = true;
-        item.addEventListener("dragstart", ev => this.#onDragStart(ev));
+    // Wire the VirtualScroller for the items container
+    this.#virtualScroller?.destroy();
+    this.#virtualScroller = null;
+    const contentEl = this.element.querySelector(".av-content");
+    const itemsEl   = this.element.querySelector(".av-items");
+    if (contentEl && itemsEl && this.#currentItems.length > 0) {
+      const vm = game.settings.get("asset-vault", "viewMode");
+      this.#virtualScroller = new VirtualScroller({
+        container:  contentEl,
+        grid:       itemsEl,
+        items:      this.#currentItems,
+        viewMode:   vm,
+        renderItem: (item) => this.#makeItemElement(item),
+        wireItems:  (els)  => this.#wireItemElements(els)
+      });
+
+      // Scroll to a specific file (e.g. after "Show in Folder")
+      if (this.#highlightFilePath) {
+        const idx = this.#currentItems.findIndex(item => item.path === this.#highlightFilePath);
+        if (idx >= 0) this.#virtualScroller.scrollToIndex(idx);
+        this.#highlightFilePath = null;
       }
     }
 
@@ -463,6 +487,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       Hooks.off("assetVault.fileIndexed", this.#fileIndexedHook);
       this.#fileIndexedHook = null;
     }
+    this.#virtualScroller?.destroy();
+    this.#virtualScroller = null;
     this.#stopActiveMedia();
     this.#autocomplete?.destroy();
     this.#autocomplete = null;
@@ -542,11 +568,96 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #applySelectionToDOM(selectedEl) {
+    // Keep #currentItems in sync so VirtualScroller re-renders (e.g. triggered by
+    // the panel opening and causing a ResizeObserver layout change) use the correct state.
+    const selectedPath = selectedEl.dataset.path;
+    for (const item of this.#currentItems) {
+      item.isSelected = item.path === selectedPath;
+    }
+
     this.element.querySelectorAll(".av-item.selected").forEach(el => el.classList.remove("selected"));
     selectedEl.classList.add("selected");
     const footerBtn = this.element.querySelector(".av-select-btn");
     if (footerBtn) footerBtn.disabled = false;
     this.#renderDetailPanel();
+  }
+
+  /* -------------------------------------------- */
+  /*  Virtual scroller helpers                    */
+  /* -------------------------------------------- */
+
+  /** Build one item element from the flat item data object. */
+  #makeItemElement(item) {
+    const el = document.createElement("div");
+
+    if (item.isDir) {
+      el.className = "av-item av-item-dir";
+      el.dataset.action = "pickDirectory";
+      el.dataset.path = item.path;
+      el.dataset.name = item.name;
+      el.title = item.name;
+      const icon = document.createElement("i");
+      icon.className = "fa-solid fa-folder av-item-icon";
+      const nameEl = document.createElement("span");
+      nameEl.className = "av-item-name";
+      nameEl.textContent = item.name;
+      const typeEl = document.createElement("span");
+      typeEl.className = "av-item-type";
+      typeEl.textContent = item.fileType;
+      el.append(icon, nameEl, typeEl);
+    } else {
+      el.className = `av-item av-item-file${item.isSelected ? " selected" : ""}`;
+      el.dataset.action = "selectFile";
+      el.dataset.path = item.path;
+      el.dataset.name = item.name;
+      if (item.isIcon)  el.dataset.isIcon  = "true";
+      if (item.isImage) el.dataset.isImage = "true";
+      if (item.isVideo) el.dataset.isVideo = "true";
+      if (item.isAudio) el.dataset.isAudio = "true";
+      if (item.isPdf)   el.dataset.isPdf   = "true";
+      el.dataset.fileType = item.fileType ?? "";
+      el.title = item.name;
+
+      let thumb;
+      if (item.isIcon) {
+        thumb = document.createElement("i");
+        // item.path is an FA class string like "fa-solid fa-dragon"
+        thumb.className = `${item.path} av-item-icon av-item-icon--fa`;
+      } else if (item.isImage) {
+        thumb = document.createElement("img");
+        thumb.className = "av-thumb";
+        thumb.src = item.path;
+        thumb.loading = "lazy";
+        thumb.alt = item.name;
+        thumb.draggable = false;
+      } else {
+        thumb = document.createElement("i");
+        const iconClass = item.isVideo ? "fa-file-video"
+          : item.isAudio ? "fa-file-audio"
+          : item.isPdf   ? "fa-file-pdf"
+          : "fa-file";
+        thumb.className = `fa-solid ${iconClass} av-item-icon`;
+      }
+      const nameEl = document.createElement("span");
+      nameEl.className = "av-item-name";
+      nameEl.textContent = item.name;
+      const typeEl = document.createElement("span");
+      typeEl.className = "av-item-type";
+      typeEl.textContent = item.fileType ?? "";
+      el.append(thumb, nameEl, typeEl);
+    }
+
+    return el;
+  }
+
+  /** Wire drag-and-drop on freshly rendered file elements (hub mode only). */
+  #wireItemElements(els) {
+    if (this.mode !== "hub") return;
+    for (const el of els) {
+      if (!el.classList.contains("av-item-file")) continue;
+      el.draggable = true;
+      el.addEventListener("dragstart", ev => this.#onDragStart(ev));
+    }
   }
 
   #renderDetailPanel() {
@@ -1076,8 +1187,11 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         },
         callback: target => {
           const path = target.dataset.path;
+          // Pre-select the file so the detail panel opens immediately on re-render
+          this.selectedFile = this.#fileDataFromElement(target);
+          this.#highlightFilePath = path;
           const dir = path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "";
-          this.navigate(dir, "data");
+          this.navigate(dir, "data", { keepSelection: true });
         }
       },
       {
@@ -1195,7 +1309,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   /*  Navigation                                  */
   /* -------------------------------------------- */
 
-  navigate(path, source = this.activeSource) {
+  navigate(path, source = this.activeSource, { keepSelection = false } = {}) {
     this.#stopActiveMedia();
     if (source !== this.activeSource) {
       this.#sidebarRootDirs = null;
@@ -1204,7 +1318,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     this.activeSource = source;
     this.target = path;
     this.#browseResult = null;
-    this.selectedFile = null;
+    if (!keepSelection) this.selectedFile = null;
     this.#searchFreeText = "";
     this.#searchFilters = [];
     this.render();
