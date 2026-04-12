@@ -20,6 +20,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   #autocomplete = null;
   #restoreSearchFocus = false;
   #activeMedia = null;
+  #viewMode = null;
   #popoutWindow = null;
   #isDetaching = false;
   #currentItems = [];
@@ -203,7 +204,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       ...files.map(f => ({ ...f, isDir: false }))
     ];
 
-    const viewMode = game.settings.get("asset-vault", "viewMode");
+    if (this.#viewMode === null) this.#viewMode = game.settings.get("asset-vault", "viewMode");
+    const viewMode = this.#viewMode;
     const storages = game.data.files?.storages ?? ["data"];
     const availableSources = ["data", "public", "s3"].filter(s => storages.includes(s));
 
@@ -236,6 +238,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       mode: this.mode,
       isPicker: this.mode === "picker",
       isDetached: this.#isDetached,
+      canDetach: game.user.isGM,
       isRestricted,
       canEditTags,
       canUpload,
@@ -466,7 +469,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     const contentEl = this.element.querySelector(".av-content");
     const itemsEl   = this.element.querySelector(".av-items");
     if (contentEl && itemsEl && this.#currentItems.length > 0) {
-      const vm = game.settings.get("asset-vault", "viewMode");
+      const vm = this.#viewMode ?? "grid";
       this.#virtualScroller = new VirtualScroller({
         container:  contentEl,
         grid:       itemsEl,
@@ -824,7 +827,6 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     );
     if (!pop) {
       ui.notifications.warn(game.i18n.localize("asset-vault.detach.popupBlocked"));
-      await game.settings.set("asset-vault", "detachedMode", false);
       return;
     }
 
@@ -875,19 +877,15 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     this.setPosition({ left: 0, top: 0, width: w, height: h });
     this.#updateDetachButton();
 
-    await game.settings.set("asset-vault", "detachedMode", true);
-
-    // When user closes the popup window with the OS X button
+    // When user closes the popup window with the OS close button
     pop.addEventListener("beforeunload", () => {
       if (this.#isDetaching) return;
       this.#popoutWindow = null;
-      // Do NOT clear detachedMode here — the user closed the window but still
-      // wants detached mode next time they open the Hub.
       this.close();
     });
   }
 
-  async #closeDetachedWindow() {
+  #closeDetachedWindow() {
     if (!this.#isDetached) return;
     this.#isDetaching = true;
     const pop = this.#popoutWindow;
@@ -909,8 +907,6 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     this.bringToFront();
     this.#updateDetachButton();
-
-    await game.settings.set("asset-vault", "detachedMode", false);
   }
 
   #updateDetachButton() {
@@ -1424,8 +1420,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     this.navigate("", target.dataset.source);
   }
 
-  static async #onSetViewMode(event, target) {
-    await game.settings.set("asset-vault", "viewMode", target.dataset.mode);
+  static #onSetViewMode(event, target) {
+    this.#viewMode = target.dataset.mode;
     this.render();
   }
 

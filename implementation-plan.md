@@ -1919,12 +1919,12 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ### Verification
 
-- [ ] Favorites: add, navigate, rename, remove — full cycle
-- [ ] Favorites are per-user (independent between GM accounts)
-- [ ] Virtual scroll: smooth at 1000+ items, DOM count stays under 200
-- [ ] Player restricted mode: no tag edit, location-filtered browse/search
-- [ ] Cross-feature: favorites + search + virtual scroll all cooperate correctly
-- [ ] No console errors across all Phase 3 features
+- [X] Favorites: add, navigate, rename, remove — full cycle
+- [X] Favorites are per-user (independent between GM accounts)
+- [X] Virtual scroll: smooth at 1000+ items, DOM count stays under 200
+- [X] Player restricted mode: no tag edit, location-filtered browse/search
+- [X] Cross-feature: favorites + search + virtual scroll all cooperate correctly
+- [X] No console errors across all Phase 3 features
 
 ---
 

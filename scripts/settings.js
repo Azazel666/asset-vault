@@ -1,4 +1,5 @@
 import { ScanLocationsConfig } from "./settings/ScanLocationsConfig.js";
+import { PlayerAccessConfig } from "./settings/PlayerAccessConfig.js";
 
 export function registerSettings() {
   game.settings.register("asset-vault", "useDefaultPicker", {
@@ -29,9 +30,8 @@ export function registerSettings() {
   game.settings.register("asset-vault", "detachedMode", {
     name: "asset-vault.settings.detachedMode.name",
     hint: "asset-vault.settings.detachedMode.hint",
-    scope: "world",
+    scope: "user",
     config: true,
-    restricted: true,
     type: Boolean,
     default: false
   });
@@ -85,12 +85,12 @@ export function registerSettings() {
           Hooks.callAll("assetVault.indexStatus", "building");
         }
       } else if (value > 0) {
-        // Rebuild complete — non-GMs reload the fresh index from disk
-        if (!game.user.isGM) {
-          index.reload().catch(err =>
-            console.error("Asset Vault | Index reload failed:", err)
-          );
-        }
+        // Rebuild complete — all clients reload the fresh index from disk.
+        // The rebuilding GM gets a redundant reload (harmless); other GMs
+        // and players all pick up the newly written index.
+        index.reload().catch(err =>
+          console.error("Asset Vault | Index reload failed:", err)
+        );
       }
       // value === 0 (error): Hub re-renders via the hook emitted inside rebuild()
     }
@@ -101,6 +101,14 @@ export function registerSettings() {
     label: "asset-vault.settings.scanLocations.label",
     icon: "fa-solid fa-folder-tree",
     type: ScanLocationsConfig,
+    restricted: true
+  });
+
+  game.settings.registerMenu("asset-vault", "playerAccessMenu", {
+    name: "asset-vault.settings.playerAccess.name",
+    label: "asset-vault.settings.scanLocations.label",
+    icon: "fa-solid fa-users",
+    type: PlayerAccessConfig,
     restricted: true
   });
 }

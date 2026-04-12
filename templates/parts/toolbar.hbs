@@ -65,10 +65,12 @@
       <i class="fa-solid fa-upload"></i>
     </button>
     {{/if}}
+    {{#if canDetach}}
     <button type="button" class="av-view-btn av-detach-btn" data-action="detachWindow"
       title="{{#if isDetached}}{{localize 'asset-vault.toolbar.attach'}}{{else}}{{localize 'asset-vault.toolbar.detach'}}{{/if}}">
       <i class="fa-solid {{#if isDetached}}fa-down-left-and-up-right-to-center{{else}}fa-up-right-from-square{{/if}}"></i>
     </button>
+    {{/if}}
   </div>
 </div>
 <div class="av-search-hint" hidden>
