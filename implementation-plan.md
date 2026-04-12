@@ -1873,17 +1873,17 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ### Verification
 
-- [ ] With `enableForPlayers` off: player gets default Foundry FilePicker
-- [ ] With `enableForPlayers` on: player gets Asset Vault in restricted mode
-- [ ] Player cannot see "Add Tag", "Delete", "Move to..." in context menu
-- [ ] Player can only browse folders listed in `playerVisibleLocations`
-- [ ] Player search results only include files from allowed locations
-- [ ] Player can select a file in picker mode (e.g., change character portrait)
-- [ ] Player cannot access Scan Locations settings
-- [ ] GM still has full access to all features
-- [ ] Hub scene UI button behavior for players is configurable
-- [ ] Empty `playerVisibleLocations`: player sees "No accessible locations" message
-- [ ] No errors when player opens the Hub or picker
+- [X] With `enableForPlayers` off: player gets default Foundry FilePicker
+- [X] With `enableForPlayers` on: player gets Asset Vault in restricted mode
+- [X] Player cannot see "Add Tag", "Delete", "Move to..." in context menu
+- [X] Player can only browse folders listed in `playerVisibleLocations`
+- [X] Player search results only include files from allowed locations
+- [X] Player can select a file in picker mode (e.g., change character portrait)
+- [X] Player cannot access Scan Locations settings
+- [X] GM still has full access to all features
+- [X] Hub scene UI button behavior for players is configurable
+- [X] Empty `playerVisibleLocations`: player sees "access restricted" message if their last location is no longer navigable; at root level the folder list is simply empty — no crash
+- [X] No errors when player opens the Hub or picker
 
 ---
 

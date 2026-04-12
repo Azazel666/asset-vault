@@ -9,6 +9,10 @@ export class AssetVaultPicker extends FilePicker {
     if (game.settings.get("asset-vault", "useDefaultPicker")) {
       return new game.assetVault.originalPicker(this.options).render(options);
     }
+    // Non-GMs use the original picker unless the GM has enabled player access.
+    if (!game.user.isGM && !game.settings.get("asset-vault", "enableForPlayers")) {
+      return new game.assetVault.originalPicker(this.options).render(options);
+    }
 
     const hub = new AssetVaultHub({
       // Each picker instance gets a unique id so it can coexist with the hub

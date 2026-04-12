@@ -70,6 +70,39 @@
   </section>
   {{/if}}
 
+  <section class="avsl-section avsl-section--player">
+    <h3 class="avsl-section-header">{{localize "asset-vault.settings.playerAccess.name"}}</h3>
+    <p class="avsl-hint">{{localize "asset-vault.settings.playerAccess.hint"}}</p>
+
+    <div class="avsl-player-path-list">
+      {{#each playerPaths}}
+      <div class="avsl-player-path-item" data-path="{{this}}">
+        <span class="avsl-player-path-text">{{this}}</span>
+        <button type="button" class="avsl-remove-path-btn" data-action="removePlayerPath" data-path="{{this}}">×</button>
+      </div>
+      {{else}}
+      <p class="avsl-empty">{{localize "asset-vault.settings.playerAccess.empty"}}</p>
+      {{/each}}
+    </div>
+
+    <div class="avsl-player-path-add">
+      <input type="text" class="avsl-player-path-input"
+        placeholder="{{localize "asset-vault.settings.playerAccess.placeholder"}}">
+      <button type="button" data-action="addPlayerPath">
+        <i class="fa-solid fa-plus"></i> {{localize "asset-vault.settings.playerAccess.add"}}
+      </button>
+    </div>
+
+    {{#if presets.length}}
+    <div class="avsl-presets">
+      <span class="avsl-presets-label" title="{{localize "asset-vault.settings.playerAccess.presetsHint"}}">{{localize "asset-vault.settings.playerAccess.presets"}}:</span>
+      {{#each presets}}
+      <button type="button" class="avsl-preset-btn" data-action="presetToInput" data-path="{{path}}" title="{{localize "asset-vault.settings.playerAccess.presetsHint"}}">{{label}}</button>
+      {{/each}}
+    </div>
+    {{/if}}
+  </section>
+
   <div class="avsl-footer">
     <span class="avsl-index-size">
       {{localize "asset-vault.scanLocations.indexSize"}}: {{indexSize}}

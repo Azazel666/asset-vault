@@ -4,8 +4,9 @@ export function registerSettings() {
   game.settings.register("asset-vault", "useDefaultPicker", {
     name: "asset-vault.settings.useDefaultPicker.name",
     hint: "asset-vault.settings.useDefaultPicker.hint",
-    scope: "user",
+    scope: "world",
     config: true,
+    restricted: true,
     type: Boolean,
     default: false,
     onChange: () => ui.controls?.render()
@@ -14,8 +15,9 @@ export function registerSettings() {
   game.settings.register("asset-vault", "viewMode", {
     name: "asset-vault.settings.viewMode.name",
     hint: "asset-vault.settings.viewMode.hint",
-    scope: "user",
+    scope: "world",
     config: true,
+    restricted: true,
     type: String,
     choices: {
       grid: "asset-vault.settings.viewMode.grid",
@@ -27,8 +29,9 @@ export function registerSettings() {
   game.settings.register("asset-vault", "detachedMode", {
     name: "asset-vault.settings.detachedMode.name",
     hint: "asset-vault.settings.detachedMode.hint",
-    scope: "user",
+    scope: "world",
     config: true,
+    restricted: true,
     type: Boolean,
     default: false
   });
@@ -36,8 +39,9 @@ export function registerSettings() {
   game.settings.register("asset-vault", "showAutoTags", {
     name: "asset-vault.settings.showAutoTags.name",
     hint: "asset-vault.settings.showAutoTags.hint",
-    scope: "user",
+    scope: "world",
     config: true,
+    restricted: true,
     type: Boolean,
     default: true
   });
@@ -57,6 +61,39 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: {}
+  });
+
+  game.settings.register("asset-vault", "playerVisiblePaths", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: []
+  });
+
+  game.settings.register("asset-vault", "indexBuildSignal", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0,
+    onChange: (value) => {
+      const index = game.assetVault?.index;
+      if (!index) return;
+      if (value < 0) {
+        // Rebuild started — update local status so all clients show the banner
+        if (index.status !== "building") {
+          index.status = "building";
+          Hooks.callAll("assetVault.indexStatus", "building");
+        }
+      } else if (value > 0) {
+        // Rebuild complete — non-GMs reload the fresh index from disk
+        if (!game.user.isGM) {
+          index.reload().catch(err =>
+            console.error("Asset Vault | Index reload failed:", err)
+          );
+        }
+      }
+      // value === 0 (error): Hub re-renders via the hook emitted inside rebuild()
+    }
   });
 
   game.settings.registerMenu("asset-vault", "scanLocationsMenu", {

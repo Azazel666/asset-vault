@@ -124,7 +124,9 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         const filteredEntries = extensions
           ? rawEntries.filter(e => extensions.some(ext => e.path.toLowerCase().endsWith(ext)))
           : rawEntries;
-        files = filteredEntries.map(entry => {
+        files = filteredEntries
+          .filter(entry => this.#isEntryAllowed(entry))
+          .map(entry => {
             const isIcon = entry.type === "icon";
             const isImage = entry.type === "image";
             const isVideo = entry.type === "video";
@@ -151,6 +153,12 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         }
       }
 
+      // Player access restriction for browse mode
+      if (!browseError && !game.user.isGM && this.target && !this.#isPathNavigable(this.target)) {
+        browseError = game.i18n.localize("asset-vault.access.restricted");
+        this.#browseResult = null;
+      }
+
       if (this.#browseResult) {
         dirs = this.#browseResult.dirs
           .map(d => ({ name: decodeURIComponent(d.split("/").pop()), path: d }))
@@ -172,6 +180,16 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
             };
           })
           .sort((a, b) => a.name.localeCompare(b.name, game.i18n.lang));
+
+        // Apply player access restrictions
+        if (!game.user.isGM) {
+          // Only show directories that are navigable (either allowed or lead to an allowed path)
+          dirs = dirs.filter(d => this.#isPathNavigable(d.path));
+          // Only show files if the current directory is explicitly in the allowed list
+          if (!this.#isPathAllowed(this.target)) {
+            files = [];
+          }
+        }
       }
 
       // Load sidebar root dirs (cached per source)
@@ -206,9 +224,9 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     }
 
-    const canUpload = !isSearchMode
-      && this.activeSource !== "s3"
-      && (game.user.isGM || game.settings.get("asset-vault", "enableForPlayers"));
+    const canUpload = game.user.isGM && !isSearchMode && this.activeSource !== "s3";
+    const isRestricted = !game.user.isGM;
+    const canEditTags = game.user.isGM;
 
     const canFavorite = !isSearchMode && !!this.target && this.activeSource !== "s3";
     const isFavorited = canFavorite
@@ -218,6 +236,8 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       mode: this.mode,
       isPicker: this.mode === "picker",
       isDetached: this.#isDetached,
+      isRestricted,
+      canEditTags,
       canUpload,
       canFavorite,
       isFavorited,
@@ -237,11 +257,13 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       browseError,
       breadcrumbs: this.#buildBreadcrumbs(),
       activeSource: this.activeSource,
-      sources: availableSources.map(s => ({
-        key: s,
-        label: AssetVaultHub.#sourceLabel(s),
-        active: s === this.activeSource
-      })),
+      sources: availableSources
+        .filter(s => game.user.isGM || s === "data")
+        .map(s => ({
+          key: s,
+          label: AssetVaultHub.#sourceLabel(s),
+          active: s === this.activeSource
+        })),
       sidebarTree: this.#buildSidebarTree(),
       favorites: this.#favorites,
       selectedFile: selectedFileCtx,
@@ -524,6 +546,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
 
   #buildSidebarTree() {
     return (this.#sidebarRootDirs ?? [])
+      .filter(d => this.#isPathNavigable(d))
       .map(d => ({
         path: d,
         name: decodeURIComponent(d.split("/").pop()),
@@ -555,6 +578,46 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     const key = `asset-vault.source.${source}`;
     const loc = game.i18n.localize(key);
     return loc !== key ? loc : source;
+  }
+
+  /** Returns the array of player-accessible path prefixes. */
+  #getAllowedPaths() {
+    const raw = game.settings.get("asset-vault", "playerVisiblePaths");
+    return Array.isArray(raw) ? raw : [];
+  }
+
+  /**
+   * Returns true if a file can be shown at this path (path is explicitly in the allowed list
+   * or is a descendant of an allowed prefix). Root always returns false — no files at root.
+   */
+  #isPathAllowed(path) {
+    if (game.user.isGM) return true;
+    if (!path) return false; // root: always navigable but files are never shown there
+    const allowed = this.#getAllowedPaths();
+    return allowed.some(p => path === p || path.startsWith(p + "/"));
+  }
+
+  /**
+   * Returns true if a directory can appear in listings or be navigated to.
+   * Includes ancestor dirs that lead toward an allowed path (e.g. "systems" is
+   * navigable when "systems/pf2e" is allowed, even though "systems" itself is not).
+   */
+  #isPathNavigable(path) {
+    if (game.user.isGM) return true;
+    if (!path) return true; // root is always navigable
+    const allowed = this.#getAllowedPaths();
+    return allowed.some(p =>
+      path === p ||
+      path.startsWith(p + "/") ||  // path is inside an allowed subtree
+      p.startsWith(path + "/")     // path is an ancestor leading to an allowed location
+    );
+  }
+
+  /** Returns true if a search index entry is accessible to the current player. */
+  #isEntryAllowed(entry) {
+    if (game.user.isGM) return true;
+    const allowed = this.#getAllowedPaths();
+    return allowed.some(p => entry.path === p || entry.path.startsWith(p + "/"));
   }
 
   #fileDataFromElement(el) {
@@ -1081,19 +1144,23 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         </div>`;
     }
 
+    const canEditTags = game.user.isGM;
     const userChips = userTags.map(t => `
       <span class="av-tag av-tag--user">
-        ${esc(t)}<button type="button" class="av-tag-remove" data-action="removeTag" data-tag="${esc(t)}">×</button>
+        ${esc(t)}${canEditTags ? `<button type="button" class="av-tag-remove" data-action="removeTag" data-tag="${esc(t)}">×</button>` : ""}
       </span>`).join("");
+
+    const inputRow = canEditTags ? `
+      <div class="av-tag-input-row">
+        <input type="text" class="av-tag-input" placeholder="${game.i18n.localize("asset-vault.tags.addPlaceholder")}" maxlength="50">
+        <button type="button" class="av-tag-add-btn" data-action="addTag">${game.i18n.localize("asset-vault.tags.add")}</button>
+      </div>` : "";
 
     const userSection = `
       <div class="av-tags-section">
         <div class="av-tags-label">${game.i18n.localize("asset-vault.tags.userTagsLabel")}</div>
         <div class="av-tags-list">${userChips}</div>
-        <div class="av-tag-input-row">
-          <input type="text" class="av-tag-input" placeholder="${game.i18n.localize("asset-vault.tags.addPlaceholder")}" maxlength="50">
-          <button type="button" class="av-tag-add-btn" data-action="addTag">${game.i18n.localize("asset-vault.tags.add")}</button>
-        </div>
+        ${inputRow}
       </div>`;
 
     return `<div class="av-detail-tags">${autoSection}${userSection}</div>`;

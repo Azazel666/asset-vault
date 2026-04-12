@@ -49,14 +49,16 @@
     <div class="av-tags-list">
       {{#each selectedFile.userTags}}
       <span class="av-tag av-tag--user">
-        {{this}}<button type="button" class="av-tag-remove" data-action="removeTag" data-tag="{{this}}">×</button>
+        {{this}}{{#if ../canEditTags}}<button type="button" class="av-tag-remove" data-action="removeTag" data-tag="{{this}}">×</button>{{/if}}
       </span>
       {{/each}}
     </div>
+    {{#if canEditTags}}
     <div class="av-tag-input-row">
       <input type="text" class="av-tag-input" placeholder="{{localize "asset-vault.tags.addPlaceholder"}}" maxlength="50">
       <button type="button" class="av-tag-add-btn" data-action="addTag">{{localize "asset-vault.tags.add"}}</button>
     </div>
+    {{/if}}
   </div>
 </div>
 {{/if}}

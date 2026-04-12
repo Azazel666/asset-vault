@@ -47,10 +47,14 @@ Hooks.once("ready", async () => {
   game.assetVault.index = index;
   await index.initialize();
 
-  // Always rebuild in background so newly activated modules/systems are picked up.
-  // The existing index (if any) remains queryable while the scan runs.
-  console.log("Asset Vault | Starting background index rebuild...");
-  index.rebuild().catch(err => console.error("Asset Vault | Background rebuild error:", err));
+  // Only GMs can write to disk — skip rebuild for players.
+  // Players load the existing index written by the GM via initialize() above.
+  if (game.user.isGM) {
+    // Rebuild in background so newly activated modules/systems are picked up.
+    // The existing index (if any) remains queryable while the scan runs.
+    console.log("Asset Vault | Starting background index rebuild...");
+    index.rebuild().catch(err => console.error("Asset Vault | Background rebuild error:", err));
+  }
 
   console.log(`Asset Vault | Index status: ${index.status}`);
 });
@@ -72,6 +76,7 @@ Hooks.on("dropCanvasData", (board, data, event) => {
 
 Hooks.on("getSceneControlButtons", (controls) => {
   if (game.settings.get("asset-vault", "useDefaultPicker")) return;
+  if (!game.user.isGM && !game.settings.get("asset-vault", "enableForPlayers")) return;
   const browse = controls?.tiles?.tools?.browse;
   if (!browse) return;
   browse.title = "asset-vault.title";

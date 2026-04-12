@@ -16,7 +16,10 @@ export class ScanLocationsConfig extends HandlebarsApplicationMixin(ApplicationV
     position: { width: 480 },
     actions: {
       save: ScanLocationsConfig.#onSave,
-      rebuild: ScanLocationsConfig.#onRebuild
+      rebuild: ScanLocationsConfig.#onRebuild,
+      addPlayerPath: ScanLocationsConfig.#onAddPlayerPath,
+      removePlayerPath: ScanLocationsConfig.#onRemovePlayerPath,
+      presetToInput: ScanLocationsConfig.#onPresetToInput,
     }
   };
 
@@ -68,6 +71,35 @@ export class ScanLocationsConfig extends HandlebarsApplicationMixin(ApplicationV
         .map(name => ({ name, checked: get(`folder:${name}`, false) }));
     } catch { /* root inaccessible */ }
 
+    // Player access — path list
+    const rawPaths = game.settings.get("asset-vault", "playerVisiblePaths");
+    const playerPaths = Array.isArray(rawPaths) ? rawPaths : [];
+
+    // Build preset suggestions (common paths based on indexed sources, not yet in list)
+    const presets = [];
+    presets.push({
+      path: `worlds/${game.world.id}`,
+      label: `worlds/${game.world.id}`
+    });
+    if (game.system) {
+      presets.push({
+        path: `systems/${game.system.id}`,
+        label: `systems/${game.system.id}`
+      });
+    }
+    presets.push({
+      path: "assets",
+      label: "assets"
+    });
+    for (const w of otherWorlds) {
+      presets.push({ path: `worlds/${w.id}`, label: `worlds/${w.id}` });
+    }
+    for (const f of otherFolders) {
+      presets.push({ path: f.name, label: f.name });
+    }
+    // All presets shown — clicking populates the input so GM can append a sub-path
+    const presetsFiltered = presets;
+
     return {
       currentWorld: { id: game.world.id, name: game.world.title ?? game.world.id },
       systems,
@@ -76,6 +108,8 @@ export class ScanLocationsConfig extends HandlebarsApplicationMixin(ApplicationV
       indexFontAwesome: get("indexFontAwesome", false),
       otherWorlds,
       otherFolders,
+      playerPaths,
+      presets: presetsFiltered,
       isRebuilding: game.assetVault?.index?.status === "building",
       indexSize: game.assetVault?.index?.size ?? 0
     };
@@ -92,6 +126,15 @@ export class ScanLocationsConfig extends HandlebarsApplicationMixin(ApplicationV
       this.#indexStatusHook = () => this.render();
       Hooks.on("assetVault.indexStatus", this.#indexStatusHook);
     }
+
+    // Wire Enter key on the path input
+    this.element.querySelector(".avsl-player-path-input")
+      ?.addEventListener("keydown", e => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        const path = e.target.value.trim();
+        if (path) { this.#addPathItem(path); e.target.value = ""; }
+      });
   }
 
   async close(options) {
@@ -103,18 +146,61 @@ export class ScanLocationsConfig extends HandlebarsApplicationMixin(ApplicationV
   }
 
   /* -------------------------------------------- */
+  /*  Path list helpers                           */
+  /* -------------------------------------------- */
+
+  #addPathItem(path) {
+    if (!path) return;
+    const list = this.element?.querySelector(".avsl-player-path-list");
+    if (!list) return;
+    if (list.querySelector(`.avsl-player-path-item[data-path="${CSS.escape(path)}"]`)) return;
+    // Remove empty-state placeholder
+    list.querySelector(".avsl-empty")?.remove();
+    const item = document.createElement("div");
+    item.className = "avsl-player-path-item";
+    item.dataset.path = path;
+    item.innerHTML = `<span class="avsl-player-path-text">${path}</span>
+      <button type="button" class="avsl-remove-path-btn" data-action="removePlayerPath" data-path="${path}">×</button>`;
+    list.appendChild(item);
+    // Hide the matching preset chip
+    const chip = this.element.querySelector(`.avsl-preset-btn[data-path="${CSS.escape(path)}"]`);
+    if (chip) chip.hidden = true;
+  }
+
+  #removePathItem(path) {
+    if (!path) return;
+    const list = this.element?.querySelector(".avsl-player-path-list");
+    if (!list) return;
+    list.querySelector(`.avsl-player-path-item[data-path="${CSS.escape(path)}"]`)?.remove();
+    // Re-show the preset chip
+    const chip = this.element.querySelector(`.avsl-preset-btn[data-path="${CSS.escape(path)}"]`);
+    if (chip) chip.hidden = false;
+    // Show empty-state placeholder when list is empty
+    if (!list.querySelector(".avsl-player-path-item")) {
+      const p = document.createElement("p");
+      p.className = "avsl-empty";
+      p.textContent = game.i18n.localize("asset-vault.settings.playerAccess.empty");
+      list.appendChild(p);
+    }
+  }
+
+  /* -------------------------------------------- */
   /*  Actions                                     */
   /* -------------------------------------------- */
 
-  /** Persist the current form state to the setting. Does NOT close the dialog. */
+  /** Persist the current form state to the settings. Does NOT close the dialog. */
   async #persistSettings() {
     const form = this.element.querySelector("form.avsl-form");
     if (!form) return;
-    const setting = {};
+    const scanLocations = {};
     for (const input of form.querySelectorAll("input[type='checkbox'][name]")) {
-      setting[input.name] = input.checked;
+      scanLocations[input.name] = input.checked;
     }
-    await game.settings.set("asset-vault", "scanLocations", setting);
+    const playerVisiblePaths = [...form.querySelectorAll(".avsl-player-path-item")]
+      .map(el => el.dataset.path)
+      .filter(Boolean);
+    await game.settings.set("asset-vault", "scanLocations", scanLocations);
+    await game.settings.set("asset-vault", "playerVisiblePaths", playerVisiblePaths);
   }
 
   static async #onSave() {
@@ -126,9 +212,25 @@ export class ScanLocationsConfig extends HandlebarsApplicationMixin(ApplicationV
   static async #onRebuild(event, button) {
     const index = game.assetVault?.index;
     if (!index || index.status === "building") return;
-    // Save settings first so rebuild uses the updated config, then fire rebuild
-    // without closing the dialog (user can watch the button spinner).
     await this.#persistSettings();
     index.rebuild().catch(err => console.error("Asset Vault | Rebuild error:", err));
+  }
+
+  static #onAddPlayerPath(event, target) {
+    const input = this.element.querySelector(".avsl-player-path-input");
+    const path = input?.value?.trim();
+    if (path) { this.#addPathItem(path); input.value = ""; }
+  }
+
+  static #onRemovePlayerPath(event, target) {
+    this.#removePathItem(target.dataset.path);
+  }
+
+  static #onPresetToInput(event, target) {
+    const input = this.element.querySelector(".avsl-player-path-input");
+    if (!input) return;
+    input.value = target.dataset.path + "/";
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
   }
 }

@@ -68,6 +68,16 @@
   "asset-vault.toolbar.attach": "Återgå till huvudfönstret",
   "asset-vault.detach.popupBlocked": "Popup blockerad — tillåt popups för denna sida för att använda fristående läge.",
 
+  "asset-vault.access.restricted": "Du har inte åtkomst till den här platsen.",
+  "asset-vault.access.noLocations": "Inga tillgängliga platser konfigurerade. Be din SL att bevilja spelaråtkomst under Skanningsplatser.",
+  "asset-vault.settings.playerAccess.name": "Spelaråtkomst",
+  "asset-vault.settings.playerAccess.hint": "Ange mappsökvägar som spelare kan bläddra och söka i. Använd exakta sökvägar som worlds/min-värld/assets/tokens/pc — spelare kan navigera genom överordnade mappar för att nå dem.",
+  "asset-vault.settings.playerAccess.empty": "Inga sökvägar konfigurerade — spelare kan inte bläddra i något innehåll.",
+  "asset-vault.settings.playerAccess.placeholder": "t.ex. worlds/min-värld/assets/tokens/pc",
+  "asset-vault.settings.playerAccess.add": "Lägg till",
+  "asset-vault.settings.playerAccess.presets": "Bassökvägar",
+  "asset-vault.settings.playerAccess.presetsHint": "Klicka för att kopiera till inmatningsfältet, lägg sedan till en undermapps-sökväg",
+
   "asset-vault.source.data": "Användardata",
   "asset-vault.source.public": "Offentlig",
   "asset-vault.source.s3": "Amazon S3",

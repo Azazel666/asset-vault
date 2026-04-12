@@ -6,7 +6,12 @@
       "Bash(grep:*)",
       "Bash(session rename:*)",
       "Bash(claude:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(node -e \"const fs=require\\('fs'\\); ['languages/en.json','languages/sv.json','module.json','scripts/module.js','scripts/settings.js'].forEach\\(f=>{try{const d=fs.readFileSync\\(f,'utf8'\\);JSON.parse&&\\(f.endsWith\\('.json'\\)?JSON.parse\\(d\\):null\\);console.log\\('OK:',f,d.length,'bytes'\\)}catch\\(e\\){console.error\\('ERROR:',f,e.message\\)}}\\)\")",
+      "Bash(node --check scripts/hub/AssetVaultHub.js scripts/hub/VirtualScroller.js scripts/picker/AssetVaultPicker.js scripts/settings/ScanLocationsConfig.js scripts/search/SearchAutocomplete.js scripts/index/IndexManager.js)",
+      "Bash(node -e \"const fs=require\\('fs'\\); const buf=fs.readFileSync\\('languages/sv.json'\\); console.log\\('First 6 bytes:', buf.slice\\(0,6\\).toString\\('hex'\\)\\); console.log\\('Has BOM:', buf[0]===0xEF && buf[1]===0xBB && buf[2]===0xBF\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const buf=fs.readFileSync\\('languages/en.json'\\); console.log\\('en.json first 6 bytes:', buf.slice\\(0,6\\).toString\\('hex'\\)\\); const m=fs.readFileSync\\('module.json'\\); console.log\\('module.json first 6 bytes:', m.slice\\(0,6\\).toString\\('hex'\\)\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); ['scripts/hub/VirtualScroller.js','scripts/search/SearchAutocomplete.js','scripts/index/IndexManager.js','scripts/index/IndexStore.js','scripts/index/Scanner.js','scripts/index/AutoTagger.js','scripts/search/SearchEngine.js'].forEach\\(f=>console.log\\(f, fs.existsSync\\(f\\)?'EXISTS':'MISSING'\\)\\)\")"
     ]
   }
 }

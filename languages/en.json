@@ -100,6 +100,16 @@
   "asset-vault.tags.add": "Add",
   "asset-vault.notifications.tagDuplicate": "Tag already exists: {tag}",
 
+  "asset-vault.access.restricted": "You do not have access to this location.",
+  "asset-vault.access.noLocations": "No accessible locations configured. Ask your GM to grant player access in Scan Locations.",
+  "asset-vault.settings.playerAccess.name": "Player Access",
+  "asset-vault.settings.playerAccess.hint": "Specify folder paths players can browse and search. Use exact paths like worlds/my-world/assets/tokens/pc — players can navigate through parent folders to reach them.",
+  "asset-vault.settings.playerAccess.empty": "No paths configured — players cannot browse any content.",
+  "asset-vault.settings.playerAccess.placeholder": "e.g. worlds/my-world/assets/tokens/pc",
+  "asset-vault.settings.playerAccess.add": "Add",
+  "asset-vault.settings.playerAccess.presets": "Base paths",
+  "asset-vault.settings.playerAccess.presetsHint": "Click to copy to the input field, then append a sub-folder path",
+
   "asset-vault.source.data": "User Data",
   "asset-vault.source.public": "Public",
   "asset-vault.source.s3": "Amazon S3",

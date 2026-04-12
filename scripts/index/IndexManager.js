@@ -15,6 +15,7 @@ export class IndexManager {
   /** @type {number} 0–100 during a rebuild */
   progress = 0;
 
+  #initialized = false;
   #store = new IndexStore();
   #search = new SearchEngine();
 
@@ -32,6 +33,9 @@ export class IndexManager {
    * @returns {Promise<void>}
    */
   async initialize() {
+    if (this.#initialized) return;
+    this.#initialized = true;
+
     // Initialise the debounced save here so foundry.utils is available.
     this.#saveDebounced = foundry.utils.debounce(() => {
       this.#store.save().catch(err => console.error("Asset Vault | Debounced save failed:", err));
@@ -50,6 +54,32 @@ export class IndexManager {
       console.error("Asset Vault | IndexManager.initialize failed:", err);
       this.status = "error";
     }
+
+    // Handle connecting mid-rebuild: if the GM's rebuild is in progress, override status.
+    const signal = game.settings.get("asset-vault", "indexBuildSignal");
+    if (signal < 0) {
+      this.status = "building";
+      Hooks.callAll("assetVault.indexStatus", "building");
+    }
+  }
+
+  /**
+   * Reload the index from disk without re-initialising hooks or debounce.
+   * Called when the GM signals a completed rebuild to non-GM clients.
+   * @returns {Promise<void>}
+   */
+  async reload() {
+    try {
+      const found = await this.#store.load();
+      this.status = found ? "ready" : "none";
+      if (found) this.#search.update(this.#store.getHaystack(), this.#store.getEntries());
+      Hooks.callAll("assetVault.indexStatus", this.status);
+      console.log(`Asset Vault | Index reloaded from disk (${this.#store.size} entries)`);
+    } catch(err) {
+      console.error("Asset Vault | IndexManager.reload failed:", err);
+      this.status = "error";
+      Hooks.callAll("assetVault.indexStatus", "error");
+    }
   }
 
   /* -------------------------------------------- */
@@ -65,6 +95,9 @@ export class IndexManager {
     this.status = "building";
     this.progress = 0;
     Hooks.callAll("assetVault.indexStatus", "building");
+    if (game.user.isGM) {
+      game.settings.set("asset-vault", "indexBuildSignal", -Date.now()).catch(() => {});
+    }
 
     try {
       const locations = this.#resolveLocations();
@@ -112,10 +145,16 @@ export class IndexManager {
       this.progress = 100;
       console.log(`Asset Vault | Rebuild complete: ${entries.length} entries indexed`);
       Hooks.callAll("assetVault.indexStatus", "ready");
+      if (game.user.isGM) {
+        game.settings.set("asset-vault", "indexBuildSignal", Date.now()).catch(() => {});
+      }
     } catch(err) {
       console.error("Asset Vault | IndexManager.rebuild failed:", err);
       this.status = "error";
       Hooks.callAll("assetVault.indexStatus", "error");
+      if (game.user.isGM) {
+        game.settings.set("asset-vault", "indexBuildSignal", 0).catch(() => {});
+      }
     }
   }
 
