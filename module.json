@@ -20,6 +20,11 @@
       "lang": "en",
       "name": "English",
       "path": "languages/en.json"
+    },
+    {
+      "lang": "sv",
+      "name": "Svenska",
+      "path": "languages/sv.json"
     }
   ],
   "flags": {

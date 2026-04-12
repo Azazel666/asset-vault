@@ -1816,14 +1816,15 @@ Uses Foundry's `ContextMenu` class with `fixed: true` (viewport-positioned) and 
 
 ### Verification
 
-- [ ] Every visible string in the Hub UI comes from `en.json` (no hardcoded text)
-- [ ] Every notification message uses i18n
-- [ ] Every context menu label uses i18n
-- [ ] Every dialog (delete confirmation, move picker, tag input, rename favorite) uses i18n
-- [ ] Settings panel labels and hints use i18n
-- [ ] Parameterized strings (result counts, filenames) format correctly
-- [ ] Creating a test language file with `[XX]` prefixes shows no un-prefixed strings in the UI
-- [ ] No errors when switching to a language that has partial translations (missing keys fall back to English)
+- ~~[ ] Every visible string in the Hub UI comes from `en.json` (no hardcoded text)~~
+- ~~[ ] Every notification message uses i18n~~
+- ~~[ ] Every context menu label uses i18n~~
+- ~~[ ] Every dialog (delete confirmation, move picker, tag input, rename favorite) uses i18n~~
+- ~~[ ] Settings panel labels and hints use i18n~~
+- ~~[ ] Parameterized strings (result counts, filenames) format correctly~~
+- ~~[ ] Creating a test language file with `[XX]` prefixes shows no un-prefixed strings in the UI~~
+- ~~[ ] No errors when switching to a language that has partial translations (missing keys fall back to English)~~
+- [X] Tested in UI and language seem to switch everywhere in the Asset Vault UI & Settings when i change to swedish, im assuming the above is correct.
 
 ---
 

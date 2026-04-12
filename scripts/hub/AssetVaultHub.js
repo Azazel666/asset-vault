@@ -552,7 +552,9 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static #sourceLabel(source) {
-    return { data: "User Data", public: "Public", s3: "Amazon S3" }[source] ?? source;
+    const key = `asset-vault.source.${source}`;
+    const loc = game.i18n.localize(key);
+    return loc !== key ? loc : source;
   }
 
   #fileDataFromElement(el) {
