@@ -25,6 +25,10 @@ The Hub is the main UI. It operates in two modes:
 
 Switch between grid and list view with the toolbar buttons. Your last-used view is remembered per session.
 
+When the picker is opened from a field that already has a file set (e.g. an actor portrait), the browser navigates to the correct folder, scrolls to that file, and pre-selects it so it is highlighted and shown in the detail panel immediately.
+
+Thumbnails in both grid and list view scale to fit within their cell — no cropping.
+
 ### Full-Text & Structured Search
 
 Type anything in the search bar to fuzzy-search across filenames, tags, and source paths. Combine free text with structured operators:
@@ -78,6 +82,11 @@ Selecting a file opens a detail panel on the right showing:
 - Auto-tags and user-defined tags
 - Quick-copy buttons for URL, CSS class, and filename
 
+Image previews support interactive zoom and pan:
+- **Scroll wheel** — zoom in/out centered on the cursor
+- **Click and drag** — pan the image
+- **Double-click** — reset to fit-in-panel view
+
 ### Drag to Canvas
 
 Drag any image from the browser onto the canvas to place it as a Tile. The tile size defaults to the current scene's grid size.
@@ -85,6 +94,8 @@ Drag any image from the browser onto the canvas to place it as a Tile. The tile 
 ### Upload
 
 GMs can upload files directly from the toolbar. Uploaded files are immediately added to the index without requiring a full rebuild.
+
+Files can also be uploaded by dragging one or more files from your OS file manager and dropping them onto the content area. A dashed outline appears while dragging to indicate the drop zone is active.
 
 ### Detached Window
 

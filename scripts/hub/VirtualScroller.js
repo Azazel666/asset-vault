@@ -23,6 +23,7 @@ export class VirtualScroller {
 
   #itemsPerRow = 1;
   #rowHeight = LIST_ROW_HEIGHT;
+  #rowHeightCalibrated = false;
 
   #rafId = null;
   #scrollHandler;
@@ -86,6 +87,19 @@ export class VirtualScroller {
    * @param {number} index
    */
   scrollToIndex(index) {
+    // Re-measure both itemsPerRow and rowHeight directly from the DOM at call time.
+    // clientWidth may have been 0 when the scroller was first constructed (before
+    // the browser completed layout), so we can't rely on the stored values.
+    const availW = Math.max(1, this.#container.clientWidth - 16);
+    if (this.#viewMode === "grid") {
+      this.#itemsPerRow = Math.max(1, Math.floor(availW / GRID_ITEM_MIN_WIDTH));
+      const firstItem = this.#grid.firstElementChild;
+      if (firstItem) {
+        const h = firstItem.getBoundingClientRect().height;
+        const gap = parseFloat(getComputedStyle(this.#grid).rowGap) || 0;
+        if (h > 0) this.#rowHeight = Math.round(h + gap);
+      }
+    }
     const row = Math.floor(index / this.#itemsPerRow);
     this.#container.scrollTop = row * this.#rowHeight;
   }
@@ -96,6 +110,7 @@ export class VirtualScroller {
 
   /** Recalculate items-per-row and row height from current container size. */
   #measure() {
+    this.#rowHeightCalibrated = false;
     // Subtract 1rem (16px) for the container's left+right padding
     const availW = Math.max(1, this.#container.clientWidth - 16);
     if (this.#viewMode === "grid") {
@@ -151,5 +166,25 @@ export class VirtualScroller {
     }
     this.#grid.replaceChildren(fragment);
     this.#wireItems(newEls);
+
+    // Calibrate row height from actual rendered items once per view/resize.
+    // The hardcoded GRID_ROW_HEIGHT estimate can differ from the real height
+    // (font size, Foundry theme, OS scaling), causing padTop jumps on slow scroll.
+    if (this.#viewMode === "grid" && !this.#rowHeightCalibrated && newEls.length > 0) {
+      this.#rowHeightCalibrated = true;
+      const sample = newEls[0];
+      requestAnimationFrame(() => {
+        if (!sample.isConnected) return;
+        const h = sample.getBoundingClientRect().height;
+        if (h <= 0) return;
+        const gap = parseFloat(getComputedStyle(this.#grid).rowGap) || 0;
+        const measured = Math.round(h + gap);
+        if (Math.abs(measured - this.#rowHeight) > 0.5) {
+          this.#rowHeight = measured;
+          this.#invalidate();
+          this.#render();
+        }
+      });
+    }
   }
 }

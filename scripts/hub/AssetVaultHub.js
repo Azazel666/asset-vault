@@ -48,6 +48,7 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.pickerOptions.current) {
       const cur = this.pickerOptions.current;
       this.target = cur.includes("/") ? cur.substring(0, cur.lastIndexOf("/")) : "";
+      this.#highlightFilePath = cur;
     }
   }
 
@@ -203,6 +204,15 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
       ...dirs.map(d => ({ ...d, isDir: true, fileType: folderType })),
       ...files.map(f => ({ ...f, isDir: false }))
     ];
+
+    // Auto-select and show detail panel for the currently-set file when picker first opens
+    if (!this.selectedFile && this.pickerOptions.current) {
+      const match = this.#currentItems.find(item => !item.isDir && item.path === this.pickerOptions.current);
+      if (match) {
+        match.isSelected = true;
+        this.selectedFile = match;
+      }
+    }
 
     if (this.#viewMode === null) this.#viewMode = game.settings.get("asset-vault", "viewMode");
     const viewMode = this.#viewMode;
@@ -479,12 +489,32 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
         wireItems:  (els)  => this.#wireItemElements(els)
       });
 
-      // Scroll to a specific file (e.g. after "Show in Folder")
+      // Scroll to a specific file — deferred one frame so the VirtualScroller has
+      // rendered its initial slice before scrollToIndex measures from the DOM.
       if (this.#highlightFilePath) {
-        const idx = this.#currentItems.findIndex(item => item.path === this.#highlightFilePath);
-        if (idx >= 0) this.#virtualScroller.scrollToIndex(idx);
+        const path = this.#highlightFilePath;
         this.#highlightFilePath = null;
+        requestAnimationFrame(() => {
+          if (!this.#virtualScroller) return;
+          const idx = this.#currentItems.findIndex(item => item.path === path);
+          if (idx >= 0) this.#virtualScroller.scrollToIndex(idx);
+        });
       }
+    }
+
+    // Wire image viewer for the template-rendered detail panel (pre-selected file on open,
+    // or any re-render while a file is selected). #renderDetailPanel() handles the
+    // click-selected case separately; this covers the Handlebars template path.
+    const templatePreview = this.element.querySelector(".av-detail-preview-area");
+    if (templatePreview && !templatePreview.dataset.viewerWired) {
+      templatePreview.dataset.viewerWired = "1";
+      this.#wireImageViewer(templatePreview);
+    }
+
+    // Wire drop zone for OS-file drag-and-drop uploads (wire once per element lifetime)
+    if (contentEl && !contentEl.dataset.dropWired && this.element.querySelector(".av-upload-input")) {
+      contentEl.dataset.dropWired = "1";
+      this.#wireDropZone(contentEl);
     }
 
     // Double-click a file to confirm in picker mode (works for both browse and search results)
@@ -797,6 +827,9 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
     panel.removeAttribute("hidden");
     this.#wireTagInput();
 
+    const previewArea = panel.querySelector(".av-detail-preview-area");
+    if (previewArea) this.#wireImageViewer(previewArea);
+
     // Wire loadedmetadata for duration / dimensions
     const mediaEl = panel.querySelector("audio, video");
     if (mediaEl) {
@@ -1072,6 +1105,122 @@ export class AssetVaultHub extends HandlebarsApplicationMixin(ApplicationV2) {
   /* -------------------------------------------- */
   /*  Upload                                      */
   /* -------------------------------------------- */
+
+  #wireDropZone(contentEl) {
+    let enterCount = 0;
+
+    contentEl.addEventListener("dragenter", (e) => {
+      if (!e.dataTransfer.types.includes("Files")) return;
+      e.preventDefault();
+      if (++enterCount === 1) contentEl.classList.add("av-drop-active");
+    });
+
+    contentEl.addEventListener("dragover", (e) => {
+      if (!e.dataTransfer.types.includes("Files")) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    });
+
+    contentEl.addEventListener("dragleave", () => {
+      if (--enterCount <= 0) {
+        enterCount = 0;
+        contentEl.classList.remove("av-drop-active");
+      }
+    });
+
+    contentEl.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      enterCount = 0;
+      contentEl.classList.remove("av-drop-active");
+      let files = Array.from(e.dataTransfer.files).filter(f => f.size > 0);
+      if (this.options.mode === "picker") files = files.slice(0, 1);
+      if (files.length) await this.#doUploadFiles(files);
+    });
+  }
+
+  #wireImageViewer(previewArea) {
+    const img = previewArea.querySelector(".av-detail-img");
+    if (!img) return;
+
+    img.style.visibility = "hidden";
+
+    let scale = 1, tx = 0, ty = 0, fitScale = 1;
+    const SCALE_MAX = 10, WHEEL_FACTOR = 0.0015;
+
+    const applyTransform = () => {
+      img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    };
+
+    // Centre when image fits container; clamp to edges when zoomed beyond bounds.
+    // Uses naturalWidth/Height directly — always valid after decode() resolves.
+    const clamp = () => {
+      const cw = previewArea.clientWidth;
+      const ch = previewArea.clientHeight;
+      const rw = img.naturalWidth  * scale;
+      const rh = img.naturalHeight * scale;
+      tx = rw <= cw ? (cw - rw) / 2 : Math.min(0, Math.max(cw - rw, tx));
+      ty = rh <= ch ? (ch - rh) / 2 : Math.min(0, Math.max(ch - rh, ty));
+    };
+
+    // decode() resolves only when the image is fully decoded and naturalWidth is real.
+    // Handles cached (complete but not yet decoded), loading, and memory-cached images.
+    img.decode()
+      .then(() => {
+        const cw = previewArea.clientWidth;
+        const ch = previewArea.clientHeight;
+        if (!previewArea.isConnected || !cw || !ch) { img.style.visibility = "visible"; return; }
+        fitScale = Math.min(1, cw / img.naturalWidth, ch / img.naturalHeight);
+        scale = fitScale;
+        tx = 0; ty = 0;
+        clamp();
+        applyTransform();
+        img.style.visibility = "visible";
+      })
+      .catch(() => { img.style.visibility = "visible"; }); // broken/unsupported image — show as-is
+
+    previewArea.addEventListener("wheel", ev => {
+      ev.preventDefault();
+      let delta = ev.deltaY;
+      if (ev.deltaMode === 1) delta *= 20;
+      if (ev.deltaMode === 2) delta *= 400;
+      const newScale = Math.min(SCALE_MAX, Math.max(fitScale, scale * (1 - delta * WHEEL_FACTOR)));
+      if (Math.abs(newScale - scale) < 0.0001) return;
+      const rect = previewArea.getBoundingClientRect();
+      tx = (ev.clientX - rect.left) - (ev.clientX - rect.left - tx) * (newScale / scale);
+      ty = (ev.clientY - rect.top)  - (ev.clientY - rect.top  - ty) * (newScale / scale);
+      scale = newScale;
+      clamp();
+      applyTransform();
+    }, { passive: false });
+
+    previewArea.addEventListener("mousedown", ev => {
+      if (ev.button !== 0) return;
+      ev.preventDefault();
+      previewArea.classList.add("av-panning");
+      let lastX = ev.clientX, lastY = ev.clientY;
+      const onMove = mv => {
+        tx += mv.clientX - lastX;
+        ty += mv.clientY - lastY;
+        lastX = mv.clientX;
+        lastY = mv.clientY;
+        clamp();
+        applyTransform();
+      };
+      const onUp = () => {
+        previewArea.classList.remove("av-panning");
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    });
+
+    previewArea.addEventListener("dblclick", () => {
+      scale = fitScale; tx = 0; ty = 0; clamp(); applyTransform();
+    });
+
+    img.addEventListener("dragstart", ev => ev.preventDefault());
+  }
 
   async #doUploadFiles(files) {
     const source = this.activeSource;

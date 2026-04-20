@@ -365,6 +365,13 @@
   flex: 1;
   overflow-y: auto;
   padding: 0.5rem;
+  position: relative;
+}
+
+.av-content.av-drop-active {
+  outline: 2px dashed var(--color-warm-1, #ff6400);
+  outline-offset: -3px;
+  background: rgba(255, 100, 0, 0.06);
 }
 
 /* ---------------------------------------- */
@@ -394,9 +401,29 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  position: relative;
+  cursor: grab;
 }
 
-.av-detail-img,
+.av-detail-preview-area.av-panning {
+  cursor: grabbing;
+}
+
+.av-detail-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Override any global img resets (e.g. max-width:100%) so naturalWidth drives layout */
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  display: block;
+  transform-origin: 0 0;
+  will-change: transform;
+  user-select: none;
+}
+
 .av-detail-video {
   width: 100%;
   height: 100%;
@@ -652,7 +679,7 @@
 .av-items[data-view="grid"] .av-thumb {
   width: 100%;
   aspect-ratio: 1;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 2px;
 }
 
@@ -695,7 +722,7 @@
 .av-items[data-view="list"] .av-thumb {
   width: 36px;
   height: 36px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 2px;
   flex-shrink: 0;
 }

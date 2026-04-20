@@ -77,5 +77,5 @@
   {{localize "asset-vault.search.hint"}}
 </div>
 {{#if canUpload}}
-<input type="file" class="av-upload-input" multiple hidden>
+<input type="file" class="av-upload-input" {{#unless isPicker}}multiple{{/unless}} hidden>
 {{/if}}
